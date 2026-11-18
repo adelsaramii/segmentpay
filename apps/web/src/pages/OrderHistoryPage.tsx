@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Package, ChevronLeft } from 'lucide-react';
 import { FA_EURO } from '@segmentpay/shared';
 import type { OrderStatus } from '@segmentpay/shared';
 import { useOrders } from '../lib/queries.js';
+import { Pill, type PillProps } from '../components/ui/Pill.js';
+import { Skeleton } from '../components/ui/Skeleton.js';
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   draft: 'پیش‌نویس',
@@ -12,57 +16,70 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   refunded: 'بازگشت داده شده',
 };
 
-const STATUS_STYLE: Record<OrderStatus, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  pending_payment: 'bg-yellow-100 text-yellow-700',
-  processing: 'bg-blue-100 text-blue-700',
-  paid: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  refunded: 'bg-purple-100 text-purple-700',
+const STATUS_TONE: Record<OrderStatus, PillProps['tone']> = {
+  draft: 'neutral',
+  pending_payment: 'warning',
+  processing: 'brand',
+  paid: 'success',
+  failed: 'danger',
+  refunded: 'cashback',
 };
 
 export function OrderHistoryPage() {
   const { data: orders = [], isLoading } = useOrders();
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h1 className="font-bold text-gray-800 text-lg">سفارش‌ها</h1>
+    <div className="flex flex-col">
+      <div className="px-4 pt-2 pb-3">
+        <h1 className="font-extrabold text-text text-2xl tracking-tight">سفارش‌ها</h1>
+        <p className="text-xs text-subtle mt-0.5">تاریخچه خرید شما</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="px-4 pb-4">
         {isLoading ? (
-          <div className="flex items-center justify-center h-32 text-gray-400">در حال بارگذاری...</div>
+          <div className="flex flex-col gap-2.5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 rounded-3xl" />
+            ))}
+          </div>
         ) : orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
-            <span className="text-4xl">📦</span>
-            <p>هیچ سفارشی وجود ندارد</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-subtle">
+              <Package size={28} />
+            </span>
+            <p className="text-subtle text-sm">هیچ سفارشی ثبت نشده است</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {[...orders].reverse().map((order) => (
-              <Link
+          <div className="flex flex-col gap-2.5">
+            {[...orders].reverse().map((order, i) => (
+              <motion.div
                 key={order.id}
-                to={`/orders/${order.id}`}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between hover:shadow-md transition-shadow"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, delay: Math.min(i * 0.03, 0.2) }}
               >
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-gray-800">{order.id}</span>
-                  <span className="text-xs text-gray-500">
-                    {new Date(order.createdAt).toLocaleDateString('fa-IR')}
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span
-                    className={`text-xs font-medium rounded-full px-2 py-0.5 ${STATUS_STYLE[order.status]}`}
-                  >
-                    {STATUS_LABEL[order.status]}
-                  </span>
-                  <span className="text-sm font-bold text-gray-700 ltr" dir="ltr">
-                    {FA_EURO(order.totalCents)}
-                  </span>
-                </div>
-              </Link>
+                <Link
+                  to={`/orders/${order.id}`}
+                  className="rounded-3xl bg-surface border border-hairline shadow-sm2 p-3.5 flex items-center gap-3 press hover:border-brand/40 transition-colors"
+                >
+                  <div className="h-10 w-10 rounded-2xl bg-muted flex items-center justify-center text-subtle flex-shrink-0">
+                    <Package size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-text font-mono truncate">{order.id}</p>
+                    <p className="text-[11px] text-subtle mt-0.5">
+                      {new Date(order.createdAt).toLocaleDateString('fa-IR')}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <Pill tone={STATUS_TONE[order.status]}>{STATUS_LABEL[order.status]}</Pill>
+                    <span dir="ltr" className="font-mono tnum text-sm font-bold text-text">
+                      {FA_EURO(order.totalCents)}
+                    </span>
+                  </div>
+                  <ChevronLeft size={16} className="text-soft flex-shrink-0" />
+                </Link>
+              </motion.div>
             ))}
           </div>
         )}

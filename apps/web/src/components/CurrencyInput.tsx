@@ -1,4 +1,6 @@
+import { Minus, Plus } from 'lucide-react';
 import type { Cents } from '@segmentpay/shared';
+import { cn } from '../lib/cn.js';
 
 interface CurrencyInputProps {
   label: string;
@@ -51,13 +53,15 @@ export function CurrencyInput({
         type="button"
         onClick={decrement}
         disabled={disabled || value <= min}
-        className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 disabled:opacity-30 hover:bg-gray-100"
+        className={cn(
+          'h-10 w-10 rounded-full bg-muted text-text press flex items-center justify-center disabled:opacity-30',
+        )}
         aria-label={`کاهش ${label}`}
       >
-        −
+        <Minus size={16} />
       </button>
       <div className="relative flex-1">
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">€</span>
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-soft text-sm pointer-events-none">€</span>
         <input
           data-testid={testId}
           type="number"
@@ -68,7 +72,10 @@ export function CurrencyInput({
           max={max !== undefined ? max / 100 : undefined}
           step={(step / 100).toFixed(2)}
           aria-label={label}
-          className="w-full border border-gray-300 rounded-lg pr-7 pl-3 py-2 text-sm text-left ltr focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className={cn(
+            'w-full h-10 rounded-2xl bg-surface border border-hairline pr-8 pl-3 font-mono text-text text-sm tnum text-left',
+            'focus:outline-none focus:ring-2 focus:ring-brand disabled:bg-muted disabled:text-soft disabled:cursor-not-allowed',
+          )}
           dir="ltr"
         />
       </div>
@@ -76,10 +83,10 @@ export function CurrencyInput({
         type="button"
         onClick={increment}
         disabled={disabled || (max !== undefined && value >= max)}
-        className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 disabled:opacity-30 hover:bg-gray-100"
+        className="h-10 w-10 rounded-full bg-muted text-text press flex items-center justify-center disabled:opacity-30"
         aria-label={`افزایش ${label}`}
       >
-        +
+        <Plus size={16} />
       </button>
     </div>
   );

@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Minus, Plus, Trash2, ShoppingCart, ArrowRight } from 'lucide-react';
 import { FA_EURO } from '@segmentpay/shared';
-import { useProducts } from '../lib/queries.js';
-import { useCreateOrder } from '../lib/queries.js';
+import { useProducts, useCreateOrder } from '../lib/queries.js';
 import { useCart, SHIPPING_CENTS } from '../lib/cart.js';
+import { Button } from '../components/ui/Button.js';
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -22,91 +24,109 @@ export function CartPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h1 className="font-bold text-gray-800 text-lg">سبد خرید</h1>
+    <div className="flex flex-col">
+      <div className="px-4 pt-2 pb-3">
+        <h1 className="font-extrabold text-text text-2xl tracking-tight">سبد خرید</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="px-4 pb-4">
         {cartLines.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
-            <span className="text-4xl">🛒</span>
-            <p>سبد خرید شما خالی است</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-subtle">
+              <ShoppingCart size={28} />
+            </span>
+            <p className="text-subtle text-sm">سبد خرید شما خالی است</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {cartLines.map(({ product, qty }) => (
-              <div
-                key={product.id}
-                data-testid={`cart-line-${product.id}`}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center gap-3"
-              >
-                <span className="text-2xl">{product.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 truncate">{product.titleFa}</p>
-                  <p className="text-xs text-gray-500 ltr" dir="ltr">
-                    {FA_EURO(product.priceCents)} × {qty} = {FA_EURO(product.priceCents * qty)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => setQty(product.id, qty - 1)}
-                    className="w-7 h-7 bg-gray-100 rounded-full text-gray-600 text-sm flex items-center justify-center hover:bg-gray-200"
-                    aria-label="کاهش"
-                  >
-                    −
-                  </button>
-                  <span className="text-sm font-semibold w-5 text-center">{qty}</span>
-                  <button
-                    onClick={() => setQty(product.id, qty + 1)}
-                    className="w-7 h-7 bg-purple-700 rounded-full text-white text-sm flex items-center justify-center hover:bg-purple-800"
-                    aria-label="افزایش"
-                  >
-                    +
-                  </button>
-                  <button
-                    onClick={() => remove(product.id)}
-                    className="w-7 h-7 bg-red-50 rounded-full text-red-500 text-sm flex items-center justify-center hover:bg-red-100 mr-1"
-                    aria-label="حذف"
-                  >
-                    🗑
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <motion.div layout className="flex flex-col gap-2.5">
+            <AnimatePresence initial={false}>
+              {cartLines.map(({ product, qty }) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  data-testid={`cart-line-${product.id}`}
+                  className="rounded-3xl bg-surface border border-hairline shadow-sm2 p-3 flex items-center gap-3"
+                >
+                  <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-muted text-2xl">
+                    {product.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-text truncate">{product.titleFa}</p>
+                    <p className="text-[11px] text-subtle tnum mt-0.5" dir="ltr">
+                      {FA_EURO(product.priceCents)} × {qty} = {FA_EURO(product.priceCents * qty)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="inline-flex items-center gap-1 bg-muted rounded-full p-0.5">
+                      <button
+                        onClick={() => setQty(product.id, qty - 1)}
+                        className="h-7 w-7 rounded-full bg-surface text-text press flex items-center justify-center"
+                        aria-label="کاهش"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="text-sm font-semibold w-5 text-center tnum">{qty}</span>
+                      <button
+                        onClick={() => setQty(product.id, qty + 1)}
+                        className="h-7 w-7 rounded-full bg-brand text-white press flex items-center justify-center"
+                        aria-label="افزایش"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => remove(product.id)}
+                      className="h-8 w-8 rounded-full bg-danger-soft text-danger press flex items-center justify-center mr-1"
+                      aria-label="حذف"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </div>
 
-      {/* Order summary */}
-      <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex flex-col gap-2">
-        <div className="flex justify-between text-sm text-gray-600">
-          <span>جمع محصولات</span>
-          <span data-testid="cart-subtotal" dir="ltr" className="ltr">{FA_EURO(sub)}</span>
-        </div>
-        <div className="flex justify-between text-sm text-gray-600">
-          <span>هزینه ارسال</span>
-          <span data-testid="cart-shipping" dir="ltr" className="ltr">{FA_EURO(SHIPPING_CENTS)}</span>
-        </div>
-        <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-200 pt-2 mt-1">
-          <span>مجموع</span>
-          <span data-testid="cart-total" dir="ltr" className="ltr">{FA_EURO(tot)}</span>
-        </div>
+      {/* Summary */}
+      <div className="sticky bottom-0 px-4 pb-24 pt-4 bg-gradient-to-t from-bg via-bg to-bg/0">
+        <div className="rounded-3xl bg-elevated border border-hairline shadow-md2 p-4 flex flex-col gap-2">
+          <div className="flex justify-between text-sm text-subtle">
+            <span>جمع محصولات</span>
+            <span data-testid="cart-subtotal" dir="ltr" className="tnum font-mono text-text">{FA_EURO(sub)}</span>
+          </div>
+          <div className="flex justify-between text-sm text-subtle">
+            <span>هزینه ارسال</span>
+            <span data-testid="cart-shipping" dir="ltr" className="tnum font-mono text-text">{FA_EURO(SHIPPING_CENTS)}</span>
+          </div>
+          <div className="flex justify-between items-baseline border-t border-hairline pt-2 mt-1">
+            <span className="text-sm text-subtle">مجموع</span>
+            <span data-testid="cart-total" dir="ltr" className="tnum font-mono font-extrabold text-text text-xl">{FA_EURO(tot)}</span>
+          </div>
 
-        <button
-          data-testid="cart-checkout-button"
-          onClick={handleCheckout}
-          disabled={cartLines.length === 0 || createOrder.isPending}
-          className="mt-2 w-full bg-purple-700 text-white font-semibold rounded-xl py-3 hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {createOrder.isPending ? 'در حال ثبت...' : 'ادامه و پرداخت'}
-        </button>
+          <Button
+            data-testid="cart-checkout-button"
+            onClick={handleCheckout}
+            disabled={cartLines.length === 0 || createOrder.isPending}
+            size="lg"
+            full
+            className="mt-2"
+          >
+            <span>{createOrder.isPending ? 'در حال ثبت...' : 'ادامه و پرداخت'}</span>
+            {!createOrder.isPending && <ArrowRight size={18} />}
+          </Button>
 
-        {createOrder.isError && (
-          <p className="text-red-500 text-xs text-center mt-1">
-            {(createOrder.error as { messageFa?: string })?.messageFa ?? 'خطا در ثبت سفارش'}
-          </p>
-        )}
+          {createOrder.isError && (
+            <p className="text-danger text-xs text-center mt-1">
+              {(createOrder.error as { messageFa?: string })?.messageFa ?? 'خطا در ثبت سفارش'}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

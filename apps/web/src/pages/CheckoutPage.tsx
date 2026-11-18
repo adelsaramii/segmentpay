@@ -1,17 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { AlertTriangle, CheckCircle2, Lock } from 'lucide-react';
 import { FA_EURO, SOURCE_LABEL_FA } from '@segmentpay/shared';
 import type { AllocationInput, PaymentSourceId, QuoteEligibility } from '@segmentpay/shared';
-import { useOrder, useQuote, usePay } from '../lib/queries.js';
-import { useWallet } from '../lib/queries.js';
+import { useOrder, useQuote, usePay, useWallet } from '../lib/queries.js';
 import { CurrencyInput } from '../components/CurrencyInput.js';
 import { QaControls, saveLastPayPayload, loadLastPayPayload } from '../components/QaControls.js';
 import { newIdempotencyKey } from '../lib/idempotency.js';
-import { useSyncExternalStore } from 'react';
+import { SegmentIcon } from '../components/ui/SegmentIcon.js';
+import { AllocationBar } from '../components/AllocationBar.js';
+import { Button } from '../components/ui/Button.js';
+import { Skeleton } from '../components/ui/Skeleton.js';
+import { cn } from '../lib/cn.js';
 
-function getOnline() {
-  return navigator.onLine;
-}
+function getOnline() { return navigator.onLine; }
 function subOnline(cb: () => void) {
   window.addEventListener('online', cb);
   window.addEventListener('offline', cb);
@@ -20,14 +23,6 @@ function subOnline(cb: () => void) {
     window.removeEventListener('offline', cb);
   };
 }
-
-const SOURCE_ICONS: Record<PaymentSourceId, string> = {
-  cash: '💵',
-  gift: '🎁',
-  cashback: '♻️',
-  corporate: '🏢',
-  card: '💳',
-};
 
 const ALL_SOURCES: PaymentSourceId[] = ['cash', 'gift', 'cashback', 'corporate', 'card'];
 
@@ -42,11 +37,7 @@ export function CheckoutPage() {
   const pay = usePay();
 
   const [allocations, setAllocations] = useState<Record<PaymentSourceId, number>>({
-    cash: 0,
-    gift: 0,
-    cashback: 0,
-    corporate: 0,
-    card: 0,
+    cash: 0, gift: 0, cashback: 0, corporate: 0, card: 0,
   });
   const [eligibility, setEligibility] = useState<QuoteEligibility[]>([]);
   const [quoteError, setQuoteError] = useState<string | null>(null);
@@ -66,18 +57,24 @@ export function CheckoutPage() {
     }
   }, [orderId, allocations, quote]);
 
-  // Initial quote load
   useEffect(() => {
     if (orderId) {
       void quote.mutateAsync({ orderId, allocations: [] })
         .then((q) => setEligibility(q.eligibility))
-        .catch(() => {/* ignore */});
+        .catch(() => {});
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   if (orderLoading || !order) {
-    return <div className="flex items-center justify-center h-64 text-gray-400">در حال بارگذاری سفارش...</div>;
+    return (
+      <div className="p-4 flex flex-col gap-3">
+        <Skeleton className="h-20 rounded-3xl" />
+        <Skeleton className="h-20 rounded-3xl" />
+        <Skeleton className="h-20 rounded-3xl" />
+        <Skeleton className="h-20 rounded-3xl" />
+      </div>
+    );
   }
 
   const totalCents = order.totalCents;
@@ -88,9 +85,8 @@ export function CheckoutPage() {
   function getEligibility(source: PaymentSourceId): QuoteEligibility | undefined {
     return eligibility.find((e) => e.source === source);
   }
-
   function getMaxForSource(source: PaymentSourceId): number {
-    if (source === 'card') return totalCents; // card has no upper cap beyond total
+    if (source === 'card') return totalCents;
     const elig = getEligibility(source);
     if (!elig || elig.maxCents === 0) return 0;
     const segBal = wallet?.segments.find((s) => s.id === source)?.balanceCents ?? 0;
@@ -98,25 +94,15 @@ export function CheckoutPage() {
   }
 
   const handleAllocChange = (source: PaymentSourceId, cents: number) => {
-    setAllocations((prev) => {
-      const next = { ...prev, [source]: cents };
-      return next;
-    });
+    setAllocations((prev) => ({ ...prev, [source]: cents }));
   };
 
   const handleFinalize = async () => {
     const allocs: AllocationInput[] = ALL_SOURCES
       .map((s) => ({ source: s, amountCents: allocations[s] ?? 0 }))
       .filter((a) => a.amountCents > 0);
-
-    const ikey = newIdempotencyKey();
-    const payload = {
-      allocations: allocs,
-      idempotencyKey: ikey,
-    };
-
+    const payload = { allocations: allocs, idempotencyKey: newIdempotencyKey() };
     saveLastPayPayload({ orderId, payload });
-
     try {
       await pay.mutateAsync({ orderId, payload });
       navigate(`/payment-result/${orderId}`);
@@ -140,56 +126,97 @@ export function CheckoutPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h1 className="font-bold text-gray-800 text-lg">پرداخت سفارش</h1>
-        <p data-testid="checkout-order-id" className="text-xs text-gray-500 mt-0.5">
-          شناسه سفارش: {order.id}
+    <div className="flex flex-col pb-4">
+      {/* Header */}
+      <div className="px-4 pt-2 pb-2">
+        <h1 className="font-extrabold text-text text-2xl tracking-tight">پرداخت</h1>
+        <p data-testid="checkout-order-id" className="text-xs text-subtle mt-0.5">
+          شناسه سفارش: <span className="font-mono tnum">{order.id}</span>
         </p>
       </div>
 
+      {/* Hero: amount + allocation bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="mx-4 rounded-3xl bg-elevated border border-hairline shadow-sm2 p-4 flex flex-col gap-3"
+      >
+        <div className="flex items-baseline justify-between">
+          <span className="text-xs text-subtle">مبلغ سفارش</span>
+          <span data-testid="checkout-total-due" className="font-mono font-extrabold text-text text-2xl tnum" dir="ltr">
+            {FA_EURO(totalCents)}
+          </span>
+        </div>
+        <AllocationBar totalCents={totalCents} allocations={allocations} />
+        <div
+          data-testid="checkout-allocated-total"
+          className={cn(
+            'flex justify-between text-xs',
+            allocatedTotal === totalCents ? 'text-success' : 'text-subtle',
+          )}
+        >
+          <span className="inline-flex items-center gap-1">
+            {allocatedTotal === totalCents ? <CheckCircle2 size={14} /> : null}
+            تخصیص یافته
+          </span>
+          <span dir="ltr" className="font-mono tnum">
+            {FA_EURO(allocatedTotal)}
+            {remaining > 0 && <span className="text-soft mx-1"> · باقی {FA_EURO(remaining)}</span>}
+          </span>
+        </div>
+      </motion.div>
+
       {/* Stepper */}
-      <div className="flex items-center px-4 py-2 gap-2 text-xs text-gray-500 border-b border-gray-100">
-        <span className="text-purple-500">سبد</span>
-        <span>›</span>
-        <span className="font-semibold text-purple-700">پرداخت</span>
-        <span>›</span>
+      <div className="flex items-center justify-center gap-2 px-4 py-3 text-[11px] text-subtle">
+        <span>سبد</span>
+        <span className="text-soft">›</span>
+        <span className="font-semibold text-brand">پرداخت</span>
+        <span className="text-soft">›</span>
         <span>تأیید</span>
       </div>
 
-      {/* Order total */}
-      <div className="mx-4 my-3 bg-purple-50 rounded-xl p-3 flex justify-between items-center">
-        <span className="text-sm text-gray-600">مبلغ سفارش</span>
-        <span
-          data-testid="checkout-total-due"
-          className="font-bold text-purple-700 ltr"
-          dir="ltr"
-        >
-          {FA_EURO(totalCents)}
-        </span>
-      </div>
-
       {quoteError && (
-        <div className="mx-4 mb-2 text-xs text-red-500">{quoteError}</div>
+        <div className="mx-4 mb-2 text-xs text-danger inline-flex items-center gap-1.5">
+          <AlertTriangle size={14} />
+          {quoteError}
+        </div>
       )}
 
       {/* Allocation rows */}
-      <div className="flex-1 overflow-y-auto px-4 flex flex-col gap-3 pb-4">
+      <div className="px-4 flex flex-col gap-2.5">
         {ALL_SOURCES.map((source) => {
           const elig = getEligibility(source);
           const maxCents = getMaxForSource(source);
           const isDisabled = source !== 'card' && maxCents === 0;
 
           return (
-            <div key={source} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{SOURCE_ICONS[source]}</span>
-                  <span className="text-sm font-semibold text-gray-800">{SOURCE_LABEL_FA[source]}</span>
+            <motion.div
+              key={source}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.28 }}
+              className={cn(
+                'rounded-3xl bg-surface border border-hairline shadow-sm2 p-3.5',
+                isDisabled && 'opacity-60',
+              )}
+            >
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <SegmentIcon source={source} size={16} className="h-8 w-8" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-text">{SOURCE_LABEL_FA[source]}</span>
+                    {source !== 'card' && (
+                      <span className="text-[10px] text-soft tnum" dir="ltr">
+                        حداکثر {FA_EURO(maxCents)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {source !== 'card' && (
-                  <span className="text-xs text-gray-500 ltr" dir="ltr">
-                    حداکثر: {FA_EURO(maxCents)}
+                {isDisabled && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-soft">
+                    <Lock size={12} />
+                    غیرمجاز
                   </span>
                 )}
               </div>
@@ -197,7 +224,7 @@ export function CheckoutPage() {
               {elig?.reasonFa && maxCents === 0 && (
                 <p
                   data-testid={`checkout-eligibility-reason-${source}`}
-                  className="text-xs text-orange-600 mb-2"
+                  className="text-[11px] text-warning bg-warning-soft/60 rounded-xl px-2.5 py-1.5 mb-2.5"
                 >
                   {elig.reasonFa}
                 </p>
@@ -212,7 +239,7 @@ export function CheckoutPage() {
                 onChange={(v) => handleAllocChange(source, v)}
                 testId={`checkout-allocation-${source}`}
               />
-            </div>
+            </motion.div>
           );
         })}
 
@@ -220,38 +247,25 @@ export function CheckoutPage() {
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-100 bg-white flex flex-col gap-2">
-        <div
-          data-testid="checkout-allocated-total"
-          className={`flex justify-between items-center text-sm font-semibold ${
-            allocatedTotal === totalCents ? 'text-green-600' : 'text-gray-700'
-          }`}
-        >
-          <span>تخصیص یافته</span>
-          <span dir="ltr" className="ltr">
-            {FA_EURO(allocatedTotal)}{' '}
-            {remaining > 0 && (
-              <span className="text-gray-400 font-normal">(باقی‌مانده: {FA_EURO(remaining)})</span>
-            )}
-          </span>
+      <div className="sticky bottom-0 px-4 pb-24 pt-4 bg-gradient-to-t from-bg via-bg to-bg/0">
+        <div className="rounded-3xl bg-elevated border border-hairline shadow-md2 p-3 flex flex-col gap-2">
+          <Button
+            data-testid="checkout-finalize-button"
+            onClick={handleFinalize}
+            disabled={!canFinalize || pay.isPending}
+            size="lg"
+            full
+            title={!isOnline ? 'آفلاین هستید — پرداخت در دسترس نیست' : undefined}
+          >
+            {pay.isPending ? 'در حال پرداخت...' : 'نهایی کردن پرداخت'}
+          </Button>
+          <button
+            onClick={refreshQuote}
+            className="w-full text-xs text-subtle hover:text-text py-1"
+          >
+            بروزرسانی اعتبارسنجی
+          </button>
         </div>
-
-        <button
-          data-testid="checkout-finalize-button"
-          onClick={handleFinalize}
-          disabled={!canFinalize || pay.isPending}
-          title={!isOnline ? 'آفلاین هستید — پرداخت در دسترس نیست' : undefined}
-          className="w-full bg-purple-700 text-white font-semibold rounded-xl py-3 hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {pay.isPending ? 'در حال پرداخت...' : 'نهایی کردن پرداخت'}
-        </button>
-
-        <button
-          onClick={refreshQuote}
-          className="w-full text-sm text-gray-500 hover:text-gray-700 py-1"
-        >
-          بروزرسانی اعتبارسنجی
-        </button>
       </div>
     </div>
   );

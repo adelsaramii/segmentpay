@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, FlaskConical, RefreshCw, Repeat } from 'lucide-react';
 import type { PaymentGatewayMode } from '@segmentpay/shared';
 import { useReset, useSetGateway } from '../lib/queries.js';
+import { cn } from '../lib/cn.js';
 
 const LAST_PAY_KEY = 'segmentpay.lastPayPayload';
 
@@ -37,61 +40,71 @@ export function QaControls({ onReplay }: QaControlsProps) {
     setGateway.mutate(mode);
   };
 
-  const handleReset = () => {
-    reset.mutate();
-  };
-
-  const handleReplay = () => {
-    if (onReplay) {
-      onReplay();
-    }
-  };
-
   return (
-    <div className="border border-dashed border-purple-300 rounded-xl bg-purple-50 overflow-hidden">
+    <div className="rounded-3xl border border-dashed border-brand/40 bg-brand-soft/40 overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full text-right px-4 py-3 text-sm font-semibold text-purple-700 flex items-center justify-between"
+        className="w-full text-right px-4 py-3 text-sm font-semibold text-brand flex items-center justify-between press"
         aria-expanded={open}
       >
-        <span>🧪 کنترل‌های QA</span>
-        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
+        <span className="inline-flex items-center gap-2">
+          <FlaskConical size={16} />
+          کنترل‌های QA
+        </span>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown size={16} />
+        </motion.span>
       </button>
 
-      {open && (
-        <div className="px-4 pb-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-600 font-medium">حالت درگاه پرداخت</label>
-            <select
-              data-testid="qa-gateway-select"
-              value={gateway}
-              onChange={(e) => handleGatewayChange(e.target.value as PaymentGatewayMode)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="success">موفق (success)</option>
-              <option value="card_declined">رد کارت (card_declined)</option>
-              <option value="network_error">خطای شبکه (network_error)</option>
-            </select>
-          </div>
-
-          <button
-            data-testid="qa-reset-button"
-            onClick={handleReset}
-            disabled={reset.isPending}
-            className="bg-red-100 text-red-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-red-200 transition-colors disabled:opacity-50"
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="qa-body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="overflow-hidden"
           >
-            {reset.isPending ? 'در حال ریست...' : '🔄 ریست داده‌ها'}
-          </button>
+            <div className="px-4 pb-4 flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] text-subtle font-medium">حالت درگاه پرداخت</label>
+                <select
+                  data-testid="qa-gateway-select"
+                  value={gateway}
+                  onChange={(e) => handleGatewayChange(e.target.value as PaymentGatewayMode)}
+                  className="rounded-2xl bg-surface border border-hairline text-text px-3 h-11 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                >
+                  <option value="success">موفق (success)</option>
+                  <option value="card_declined">رد کارت (card_declined)</option>
+                  <option value="network_error">خطای شبکه (network_error)</option>
+                </select>
+              </div>
 
-          <button
-            data-testid="qa-replay-last-payment"
-            onClick={handleReplay}
-            className="bg-blue-100 text-blue-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-blue-200 transition-colors"
-          >
-            ▶️ تکرار آخرین پرداخت
-          </button>
-        </div>
-      )}
+              <button
+                data-testid="qa-reset-button"
+                onClick={() => reset.mutate()}
+                disabled={reset.isPending}
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 rounded-2xl bg-danger-soft text-danger px-4 h-11 text-sm font-semibold press disabled:opacity-50',
+                )}
+              >
+                <RefreshCw size={16} />
+                {reset.isPending ? 'در حال ریست...' : 'ریست داده‌ها'}
+              </button>
+
+              <button
+                data-testid="qa-replay-last-payment"
+                onClick={() => onReplay?.()}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-corporate-soft text-corporate px-4 h-11 text-sm font-semibold press"
+              >
+                <Repeat size={16} />
+                تکرار آخرین پرداخت
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
