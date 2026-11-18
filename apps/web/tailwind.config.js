@@ -1,34 +1,71 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         brand: {
-          50: '#F5F3FF',
-          100: '#EDE9FE',
-          200: '#DDD6FE',
-          300: '#C4B5FD',
-          400: '#A78BFA',
-          500: '#8B5CF6',
-          600: '#7C3AED',
-          700: '#6D28D9',
-          800: '#5B21B6',
-          900: '#4C1D95',
+          DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
+          strong: 'rgb(var(--brand-strong) / <alpha-value>)',
+          soft: 'rgb(var(--brand-soft) / <alpha-value>)',
         },
-        success: { 500: '#10B981', 600: '#059669' },
-        warning: { 500: '#F59E0B', 600: '#D97706' },
-        app: '#F5F3FF',
+        bg: 'rgb(var(--bg) / <alpha-value>)',
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        elevated: 'rgb(var(--elevated) / <alpha-value>)',
+        muted: 'rgb(var(--muted) / <alpha-value>)',
+        hairline: 'rgb(var(--border) / <alpha-value>)',
+        'border-strong': 'rgb(var(--border-strong) / <alpha-value>)',
+        text: 'rgb(var(--text) / <alpha-value>)',
+        subtle: 'rgb(var(--text-muted) / <alpha-value>)',
+        soft: 'rgb(var(--text-soft) / <alpha-value>)',
+        cash: {
+          DEFAULT: 'rgb(var(--cash) / <alpha-value>)',
+          soft: 'rgb(var(--cash-soft) / <alpha-value>)',
+        },
+        gift: {
+          DEFAULT: 'rgb(var(--gift) / <alpha-value>)',
+          soft: 'rgb(var(--gift-soft) / <alpha-value>)',
+        },
+        cashback: {
+          DEFAULT: 'rgb(var(--cashback) / <alpha-value>)',
+          soft: 'rgb(var(--cashback-soft) / <alpha-value>)',
+        },
+        corporate: {
+          DEFAULT: 'rgb(var(--corporate) / <alpha-value>)',
+          soft: 'rgb(var(--corporate-soft) / <alpha-value>)',
+        },
+        card: {
+          src: 'rgb(var(--card-src) / <alpha-value>)',
+          'src-soft': 'rgb(var(--card-src-soft) / <alpha-value>)',
+        },
+        success: {
+          DEFAULT: 'rgb(var(--success) / <alpha-value>)',
+          soft: 'rgb(var(--success-soft) / <alpha-value>)',
+        },
+        danger: {
+          DEFAULT: 'rgb(var(--danger) / <alpha-value>)',
+          soft: 'rgb(var(--danger-soft) / <alpha-value>)',
+        },
+        warning: {
+          DEFAULT: 'rgb(var(--warning) / <alpha-value>)',
+          soft: 'rgb(var(--warning-soft) / <alpha-value>)',
+        },
       },
       fontFamily: {
         fa: ['Vazirmatn', 'IRANSansX', 'Inter', 'system-ui', 'sans-serif'],
         sans: ['Vazirmatn', 'IRANSansX', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['Geist Mono', 'JetBrains Mono', 'ui-monospace', 'monospace'],
       },
-      boxShadow: {
-        card: '0 12px 24px -16px rgba(109, 40, 217, 0.25)',
-        inner1: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+      fontSize: {
+        display: ['2.5rem', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '700' }],
+        hero: ['3rem', { lineHeight: '1.05', letterSpacing: '-0.03em', fontWeight: '800' }],
       },
-      borderRadius: { xl2: '1.25rem' },
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.5rem',
+        '4xl': '2rem',
+      },
     },
   },
   plugins: [],

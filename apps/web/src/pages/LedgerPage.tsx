@@ -1,17 +1,15 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { ReceiptText, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { FA_EURO, SOURCE_LABEL_FA } from '@segmentpay/shared';
 import type { LedgerEntryType, PaymentSourceId } from '@segmentpay/shared';
 import { useLedger } from '../lib/queries.js';
+import { Pill, type PillProps } from '../components/ui/Pill.js';
+import { Skeleton } from '../components/ui/Skeleton.js';
+import { SegmentIcon } from '../components/ui/SegmentIcon.js';
+import { cn } from '../lib/cn.js';
 
 type LedgerFilter = 'all' | 'payments' | 'refunds';
-
-const SOURCE_ICONS: Record<PaymentSourceId, string> = {
-  cash: '💵',
-  gift: '🎁',
-  cashback: '♻️',
-  corporate: '🏢',
-  card: '💳',
-};
 
 const TYPE_LABELS: Record<LedgerEntryType, string> = {
   debit: 'برداشت',
@@ -20,6 +18,24 @@ const TYPE_LABELS: Record<LedgerEntryType, string> = {
   commit: 'تأیید',
   reversal: 'برگشت',
 };
+
+const STATE_LABEL: Record<string, string> = {
+  committed: 'تأیید',
+  reversed: 'برگشت',
+  reserved: 'رزرو',
+};
+
+const STATE_TONE: Record<string, PillProps['tone']> = {
+  committed: 'success',
+  reversed: 'neutral',
+  reserved: 'warning',
+};
+
+const FILTERS: { value: LedgerFilter; label: string }[] = [
+  { value: 'all', label: 'همه' },
+  { value: 'payments', label: 'پرداخت‌ها' },
+  { value: 'refunds', label: 'بازگشت‌ها' },
+];
 
 function isPaymentEntry(type: LedgerEntryType): boolean {
   return type === 'debit' || type === 'reservation' || type === 'commit';
@@ -53,90 +69,105 @@ export function LedgerPage() {
   });
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h1 className="font-bold text-gray-800 text-lg">دفتر کل</h1>
+    <div className="flex flex-col">
+      <div className="px-4 pt-2 pb-3">
+        <h1 className="font-extrabold text-text text-2xl tracking-tight">دفتر کل</h1>
+        <p className="text-xs text-subtle mt-0.5">همه تراکنش‌های کیف پول</p>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 px-4 py-2 border-b border-gray-100">
-        {(['all', 'payments', 'refunds'] as LedgerFilter[]).map((f) => {
-          const labels = { all: 'همه', payments: 'پرداخت‌ها', refunds: 'بازگشت‌ها' };
+      {/* Filter pills */}
+      <div className="flex gap-2 overflow-x-auto px-4 py-2 no-scrollbar">
+        {FILTERS.map((f) => {
+          const active = filter === f.value;
           return (
             <button
-              key={f}
-              data-testid={`ledger-filter-${f}`}
-              onClick={() => setFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                filter === f
-                  ? 'bg-purple-700 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              key={f.value}
+              data-testid={`ledger-filter-${f.value}`}
+              onClick={() => setFilter(f.value)}
+              className={cn(
+                'relative flex-shrink-0 rounded-full h-9 px-4 text-xs font-semibold press transition-colors',
+                active ? 'text-white' : 'bg-muted text-subtle hover:text-text',
+              )}
             >
-              {labels[f]}
+              {active && (
+                <motion.span
+                  layoutId="ledgerFilterPill"
+                  className="absolute inset-0 rounded-full bg-text"
+                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                />
+              )}
+              <span className="relative z-10">{f.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Entries */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="px-4 pb-4">
         {isLoading ? (
-          <div className="flex items-center justify-center h-32 text-gray-400">در حال بارگذاری...</div>
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-3xl" />
+            ))}
+          </div>
         ) : visible.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
-            <span className="text-4xl">📋</span>
-            <p>هیچ تراکنشی یافت نشد</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-subtle">
+              <ReceiptText size={28} />
+            </span>
+            <p className="text-subtle text-sm">تراکنشی یافت نشد</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {visible.map((entry) => {
+          <motion.div key={filter} className="flex flex-col gap-2">
+            {visible.map((entry, i) => {
               const isCredit = entry.type === 'credit' || entry.type === 'reversal';
-              const amountSign = isCredit ? '+' : '−';
-              const amountColor = isCredit ? 'text-green-600' : 'text-red-600';
+              const source = entry.source as PaymentSourceId;
 
               return (
-                <div
+                <motion.div
                   key={entry.id}
                   data-testid="ledger-row"
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center gap-3"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: Math.min(i * 0.02, 0.2) }}
+                  className="rounded-3xl bg-surface border border-hairline shadow-sm2 p-3 flex items-center gap-3"
                 >
-                  <div className="text-xl flex-shrink-0">
-                    {SOURCE_ICONS[entry.source as PaymentSourceId] ?? '💳'}
-                  </div>
+                  <SegmentIcon source={source} size={16} className="h-10 w-10 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gray-700">
-                        {SOURCE_LABEL_FA[entry.source as PaymentSourceId] ?? entry.source}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-text">
+                        {SOURCE_LABEL_FA[source] ?? entry.source}
                       </span>
-                      <span className="text-xs text-gray-400">•</span>
-                      <span className="text-xs text-gray-500">{TYPE_LABELS[entry.type] ?? entry.type}</span>
+                      <span className="text-soft text-xs">·</span>
+                      <span className="text-xs text-subtle">{TYPE_LABELS[entry.type] ?? entry.type}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400 truncate">{entry.orderId}</span>
-                      <span className="text-xs text-gray-300">•</span>
-                      <span className="text-xs text-gray-400">{formatDate(entry.createdAt)}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[11px] text-soft truncate font-mono">{entry.orderId}</span>
+                      <span className="text-soft text-[10px]">·</span>
+                      <span className="text-[11px] text-soft">{formatDate(entry.createdAt)}</span>
                     </div>
                     {entry.reasonCode && (
-                      <span className="text-xs text-orange-500">{entry.reasonCode}</span>
+                      <span className="text-[11px] text-warning mt-0.5 block">{entry.reasonCode}</span>
                     )}
                   </div>
-                  <div className="flex flex-col items-end flex-shrink-0">
-                    <span className={`font-bold text-sm ltr ${amountColor}`} dir="ltr">
-                      {amountSign}{FA_EURO(entry.amountCents)}
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span
+                      dir="ltr"
+                      className={cn(
+                        'font-mono font-bold text-sm tnum inline-flex items-center gap-1',
+                        isCredit ? 'text-success' : 'text-danger',
+                      )}
+                    >
+                      {isCredit ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
+                      {isCredit ? '+' : '−'}{FA_EURO(entry.amountCents)}
                     </span>
-                    <span className={`text-xs rounded-full px-1.5 py-0.5 mt-0.5 ${
-                      entry.state === 'committed' ? 'bg-green-100 text-green-700' :
-                      entry.state === 'reversed' ? 'bg-gray-100 text-gray-500' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {entry.state === 'committed' ? 'تأیید' : entry.state === 'reversed' ? 'برگشت' : 'رزرو'}
-                    </span>
+                    <Pill tone={STATE_TONE[entry.state] ?? 'neutral'}>
+                      {STATE_LABEL[entry.state] ?? entry.state}
+                    </Pill>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </div>
     </div>
