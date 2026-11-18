@@ -8,6 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
+      devOptions: { enabled: true, type: 'module' },
       manifest: {
         name: 'SegmentPay',
         short_name: 'SegmentPay',

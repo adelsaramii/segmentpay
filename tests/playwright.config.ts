@@ -5,7 +5,8 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 7_000 },
   fullyParallel: false,
-  retries: 0,
+  workers: 1,
+  retries: 1,
   reporter: [['list'], ['html', { outputFolder: '../playwright-report', open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:5173',
