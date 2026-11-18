@@ -1,0 +1,455 @@
+{
+  "project": {
+    "key": "SPAY",
+    "name": "SegmentPay",
+    "nameFa": "سگمنت‌پی"
+  },
+  "tickets": [
+    {
+      "key": "SPAY-101",
+      "summary": "Wallet overview screen",
+      "summaryFa": "نمای کیف پول",
+      "status": "TODO",
+      "priority": "HIGH",
+      "route": "/wallet",
+      "userStory": "As a shopper, I want to see my total wallet balance and each segment's balance so that I understand how much I can spend.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم موجودی کل کیف پول و هر بخش را ببینم تا بدانم چقدر می‌توانم خرج کنم.",
+      "description": "The Wallet Overview must present the total of all segments at the top and a per-segment list underneath. Each segment shows its balance, a short eligibility rule line, and an icon. Values must come from GET /api/wallet and be rendered in EUR with two decimals.",
+      "descriptionFa": "صفحه نمای کیف پول باید مجموع تمام بخش‌ها را در بالای صفحه و فهرست تک تک بخش‌ها را در زیر آن نمایش دهد. هر بخش شامل موجودی، توضیح کوتاه قانون و آیکون است. مقادیر باید از GET /api/wallet گرفته شده و با فرمت یورو و دو رقم اعشار نمایش داده شود.",
+      "preconditions": [
+        "The API is running and seeded with the default wallet.",
+        "The user navigates to /wallet."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "the default seeded wallet",
+          "when": "the user visits /wallet",
+          "then": "the element with data-testid='wallet-total' shows €220.00"
+        },
+        {
+          "given": "the default seeded wallet",
+          "when": "the user visits /wallet",
+          "then": "four segment cards are visible with data-testids wallet-segment-cash, wallet-segment-gift, wallet-segment-cashback, wallet-segment-corporate"
+        },
+        {
+          "given": "the default seeded wallet",
+          "when": "the user visits /wallet",
+          "then": "wallet-segment-cash shows €120.00, wallet-segment-gift shows €25.00, wallet-segment-cashback shows €15.00, wallet-segment-corporate shows €60.00"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Navigate to /wallet; see total €220.00 and four segments at their seeded balances.",
+        "negative": "After calling POST /api/dev/reset the balances must return to the default seeded values."
+      },
+      "expectedResults": [
+        "Total balance equals the sum of segment balances.",
+        "Every segment card is rendered with its rule label."
+      ],
+      "testIds": ["wallet-total", "wallet-segment-cash", "wallet-segment-gift", "wallet-segment-cashback", "wallet-segment-corporate"]
+    },
+    {
+      "key": "SPAY-102",
+      "summary": "Multi-segment balances with isolated accounting",
+      "summaryFa": "موجودی‌های بخش‌های مختلف با حسابداری مجزا",
+      "status": "TODO",
+      "priority": "HIGH",
+      "route": "/wallet",
+      "userStory": "As a shopper, I want each wallet segment to track its own balance separately so that spending from one segment never silently affects another.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم هر بخش کیف پول موجودی خودش را داشته باشد تا خرج کردن از یک بخش روی بخش دیگر تأثیر نگذارد.",
+      "description": "Each of the four segments (Cash, Gift, Cashback, Corporate) is accounted independently. Any debit against one segment must change only that segment's balance. Balances are driven by the ledger; there is no direct balance mutation outside ledger events.",
+      "descriptionFa": "هر یک از چهار بخش (نقدی، هدیه، کش‌بک، سازمانی) به صورت مستقل حسابداری می‌شود. هر برداشت از یک بخش فقط موجودی همان بخش را تغییر می‌دهد. موجودی‌ها از دفتر کل محاسبه می‌شوند و هیچ تغییر مستقیمی خارج از دفتر کل رخ نمی‌دهد.",
+      "preconditions": [
+        "A paid order used €40 from Cash segment only."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "a seeded wallet",
+          "when": "an order is paid using €40 from cash only",
+          "then": "the cash segment drops to €80.00 and gift, cashback and corporate are unchanged"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Pay a grocery €40 order fully from cash. Confirm only cash dropped to €80.",
+        "negative": "Attempting to debit a segment below zero must be rejected by the API with INSUFFICIENT_SEGMENT_BALANCE."
+      },
+      "expectedResults": [
+        "Only the debited segment balance changes.",
+        "Ledger contains exactly one debit entry on the touched segment."
+      ],
+      "testIds": ["wallet-segment-cash", "wallet-segment-gift", "wallet-segment-cashback", "wallet-segment-corporate"]
+    },
+    {
+      "key": "SPAY-103",
+      "summary": "Segment eligibility rules enforced",
+      "summaryFa": "قوانین و محدودیت‌های بخش‌ها",
+      "status": "TODO",
+      "priority": "CRITICAL",
+      "route": "/checkout",
+      "userStory": "As the platform, I want segment rules enforced on the server so that customers cannot pay with an ineligible segment.",
+      "userStoryFa": "به عنوان پلتفرم، می‌خواهم قوانین بخش‌ها در سمت سرور اعمال شوند تا کاربر نتواند با بخش غیرمجاز پرداخت کند.",
+      "description": "Gift credit is only allowed when every order item is in the grocery or fashion category. Corporate credit is only allowed when every order item is in the office category. Cashback requires a €20.00 minimum order and may cover at most 20% of the order total. The API's POST /orders/:id/quote endpoint returns an eligibility array describing the maximum spend per source. The pay endpoint re-validates these rules and rejects invalid allocations with INELIGIBLE_SEGMENT.",
+      "descriptionFa": "اعتبار هدیه فقط زمانی قابل استفاده است که تمام اقلام سفارش در دسته‌بندی مواد غذایی یا مد و پوشاک باشند. اعتبار سازمانی فقط برای اقلام لوازم اداری. کش‌بک حداقل سفارش ۲۰ یورو و حداکثر ۲۰٪ مبلغ سفارش. اندپوینت quote لیست حداکثر مجاز را برمی‌گرداند و اندپوینت pay بار دیگر اعتبارسنجی می‌کند.",
+      "preconditions": [
+        "The cart contains at least one electronics item and the user opens checkout."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "a cart containing an electronics item",
+          "when": "the user tries to allocate any amount to the gift segment",
+          "then": "the frontend disables the gift input and the API responds with INELIGIBLE_SEGMENT for gift"
+        },
+        {
+          "given": "an order total of €18.00",
+          "when": "the user allocates €1 to cashback",
+          "then": "the quote returns cashback.maxCents = 0 with reason 'minimum order €20.00 required'"
+        },
+        {
+          "given": "an order total of €100.00",
+          "when": "the user allocates €25 to cashback",
+          "then": "the API responds with CASHBACK_LIMIT_EXCEEDED and the frontend caps cashback at €20.00"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Grocery+fashion order allows cash, gift, cashback (if ≥€20) and card.",
+        "negative": "Electronics order disables gift and corporate at the UI and the API rejects any such allocation."
+      },
+      "expectedResults": [
+        "Quote reflects per-segment maximum spend.",
+        "Pay endpoint rejects ineligible allocations with structured error codes."
+      ],
+      "testIds": ["checkout-allocation-gift", "checkout-allocation-corporate", "checkout-allocation-cashback", "checkout-eligibility-reason-gift"]
+    },
+    {
+      "key": "SPAY-104",
+      "summary": "Product catalog and cart",
+      "summaryFa": "فروشگاه و سبد خرید",
+      "status": "TODO",
+      "priority": "HIGH",
+      "route": "/shop",
+      "userStory": "As a shopper, I want to browse products and add them to a cart with adjustable quantities.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم محصولات را مرور کرده و با مقادیر قابل تنظیم به سبد خرید اضافه کنم.",
+      "description": "The catalog screen lists products from GET /api/products with a category filter. The cart screen shows each line item with +/- buttons and a running subtotal. Shipping is a fixed €2.00. All currency rendering uses two decimals.",
+      "descriptionFa": "صفحه فروشگاه محصولات را از GET /api/products با فیلتر دسته‌بندی نمایش می‌دهد. صفحه سبد خرید اقلام را با دکمه‌های + / - و جمع جاری نشان می‌دهد. هزینه ارسال ثابت ۲ یورو است.",
+      "preconditions": [
+        "The API is seeded with at least one product per category."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "the catalog page",
+          "when": "the user clicks 'add' on Fresh Bananas",
+          "then": "the Cart tab badge increments to 1 and the cart contains Fresh Bananas with quantity 1"
+        },
+        {
+          "given": "the cart has one Fresh Bananas line",
+          "when": "the user clicks the + button on that line",
+          "then": "quantity becomes 2 and the subtotal updates to 2 × unit price"
+        },
+        {
+          "given": "a cart with items",
+          "when": "a quantity reaches 0 after clicking -",
+          "then": "the line is removed"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Browse → add items from different categories → open cart and confirm subtotal and shipping.",
+        "negative": "Removing all items empties the cart and the Checkout button becomes disabled."
+      },
+      "expectedResults": [
+        "Category filter restricts the visible product list.",
+        "Cart totals equal Σ(unitPrice × qty) + €2 shipping."
+      ],
+      "testIds": ["catalog-filter-all", "catalog-product-grocery-banana", "cart-line-grocery-banana", "cart-subtotal", "cart-shipping", "cart-total", "cart-checkout-button"]
+    },
+    {
+      "key": "SPAY-105",
+      "summary": "Order creation from cart",
+      "summaryFa": "ایجاد سفارش از سبد خرید",
+      "status": "TODO",
+      "priority": "HIGH",
+      "route": "/checkout",
+      "userStory": "As a shopper, I want to submit my cart to create an order so that I can proceed to pay.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم سبد خرید خود را ثبت کنم تا سفارش ایجاد شده و پرداخت را آغاز کنم.",
+      "description": "POST /api/orders accepts an items array of { productId, quantity }. The server resolves prices, computes items total + shipping, assigns an id like ORD-10001, and returns an order in status 'pending_payment'. The client navigates to /checkout/:id.",
+      "descriptionFa": "POST /api/orders آرایه‌ای از { productId, quantity } می‌پذیرد. سرور قیمت‌ها را حل می‌کند، جمع اقلام و هزینه ارسال را محاسبه می‌کند، یک شناسه مانند ORD-10001 اختصاص می‌دهد و سفارش را با وضعیت 'pending_payment' بازمی‌گرداند.",
+      "preconditions": [
+        "The cart has at least one item."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "a cart with 1 Fresh Bananas",
+          "when": "the user clicks Checkout",
+          "then": "the app navigates to /checkout/<id>, the server returns status 'pending_payment' and the totals match the cart"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Submit a cart with 3 items, land on /checkout with the right total.",
+        "negative": "Submitting an empty cart is rejected with EMPTY_CART."
+      },
+      "expectedResults": [
+        "An Order record exists and is retrievable at GET /api/orders/:id.",
+        "Order id follows ORD- prefix convention."
+      ],
+      "testIds": ["cart-checkout-button", "checkout-order-id", "checkout-total-due"]
+    },
+    {
+      "key": "SPAY-106",
+      "summary": "Multi-source payment allocation controls",
+      "summaryFa": "تخصیص چندمنبعی پرداخت",
+      "status": "TODO",
+      "priority": "CRITICAL",
+      "route": "/checkout",
+      "userStory": "As a shopper, I want to split an order across wallet segments and a card so that I can mix funds.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم سفارش را بین بخش‌های کیف پول و کارت تقسیم کنم تا بتوانم از چند منبع پرداخت کنم.",
+      "description": "Checkout screen shows an allocation row per source: segments that are eligible are enabled with a numeric input bounded by min(eligibility.maxCents, segment.balance). Card has no upper cap. A live 'Allocated' footer shows Σ allocations and turns green when it equals the total.",
+      "descriptionFa": "صفحه پرداخت برای هر منبع یک ردیف تخصیص نمایش می‌دهد: بخش‌های واجد شرایط با مقدار عددی محدود به min(حداکثر مجاز، موجودی بخش) فعال هستند. کارت سقف ندارد. پاورقی 'تخصیص یافته' مجموع را نشان می‌دهد و در صورت برابری با مبلغ کل سبز می‌شود.",
+      "preconditions": [
+        "An order is in pending_payment status."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "a grocery order of €100.00",
+          "when": "the user sets cash=40, gift=20, cashback=10, card=30",
+          "then": "the allocated footer equals €100.00 and the Finalize Payment button is enabled"
+        },
+        {
+          "given": "the same order",
+          "when": "the sum of allocations is less than €100.00",
+          "then": "the Finalize Payment button is disabled and the footer shows a remaining amount"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Split 40/20/10/30 across cash/gift/cashback/card for a €100 grocery order.",
+        "negative": "Entering cash=130 is clamped to the cash segment's balance of €120."
+      },
+      "expectedResults": [
+        "Allocation inputs respect eligibility maxCents.",
+        "Finalize Payment enabled only when Σ allocations == total."
+      ],
+      "testIds": ["checkout-allocation-cash", "checkout-allocation-gift", "checkout-allocation-cashback", "checkout-allocation-card", "checkout-allocated-total", "checkout-finalize-button"]
+    },
+    {
+      "key": "SPAY-107",
+      "summary": "Successful multi-source checkout",
+      "summaryFa": "پرداخت موفق سفارش",
+      "status": "TODO",
+      "priority": "CRITICAL",
+      "route": "/checkout",
+      "userStory": "As a shopper, I want a successful multi-source payment to debit each source atomically so that my order is paid in one go.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم پرداخت موفق چندمنبعی به صورت یکپارچه از هر منبع کسر شود تا سفارش به یکباره پرداخت گردد.",
+      "description": "POST /api/orders/:id/pay with valid allocations that sum to the total and gatewayMode='success' commits all wallet reservations and marks the order 'paid'. The Payment Result screen shows a success state with the breakdown per source and order id.",
+      "descriptionFa": "POST /api/orders/:id/pay با تخصیص‌های معتبر و gatewayMode='success' تمام رزروهای کیف پول را کامیت کرده و سفارش را 'paid' می‌کند. صفحه نتیجه پرداخت وضعیت موفق را با تفکیک به ازای هر منبع و شناسه سفارش نمایش می‌دهد.",
+      "preconditions": [
+        "A grocery order ORD-X with total €100.00 and allocations 40/20/10/30 is ready.",
+        "QA gateway mode is set to success."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "the above setup",
+          "when": "the user clicks Finalize Payment",
+          "then": "the UI navigates to /payment-result/:id showing a success state and 'Paid €100.00'"
+        },
+        {
+          "given": "a committed payment",
+          "when": "the wallet is reloaded",
+          "then": "cash=80.00, gift=5.00, cashback=5.00, corporate=60.00 and total=150.00"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Pay 40/20/10/30 and land on the success screen with the correct breakdown.",
+        "negative": "If the committed order is re-queried, its status is 'paid' and it has exactly one committed payment attempt."
+      },
+      "expectedResults": [
+        "Order status is 'paid'.",
+        "Wallet segments reflect the debits.",
+        "Ledger contains one commit entry per source."
+      ],
+      "testIds": ["checkout-finalize-button", "payment-result-success", "payment-result-total-paid", "payment-result-breakdown-cash", "payment-result-breakdown-gift", "payment-result-breakdown-cashback", "payment-result-breakdown-card"]
+    },
+    {
+      "key": "SPAY-108",
+      "summary": "Card failure with wallet compensation",
+      "summaryFa": "خطای پرداخت و جبران",
+      "status": "TODO",
+      "priority": "CRITICAL",
+      "route": "/checkout",
+      "userStory": "As a shopper, I want a failed card charge to fully restore my wallet balances so that no funds are lost on a failed payment.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم شکست پرداخت کارت موجودی کیف پول را به حالت اولیه بازگرداند تا هیچ وجهی از دست نرود.",
+      "description": "When gatewayMode='card_declined' or 'network_error', wallet reservations are reversed and the order is marked 'failed'. The UI shows a failure state with a 'Retry Payment' action that returns to the allocation screen with the previous allocations prefilled.",
+      "descriptionFa": "هنگامی که gatewayMode برابر 'card_declined' یا 'network_error' باشد، رزروهای کیف پول برگردانده شده و سفارش به 'failed' تغییر می‌کند. UI وضعیت ناموفق را با گزینه 'تلاش مجدد' نمایش می‌دهد.",
+      "preconditions": [
+        "A grocery order with allocations and gatewayMode='card_declined'."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "a €100 order and gatewayMode=card_declined",
+          "when": "the user clicks Finalize Payment",
+          "then": "the UI shows 'Payment failed' and the wallet returns to its pre-attempt balances"
+        },
+        {
+          "given": "the failed order",
+          "when": "the ledger is inspected",
+          "then": "each wallet source has one reservation entry and one matching reversal entry for the same amount"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Retry with gatewayMode=success completes the order correctly.",
+        "negative": "Gateway network_error produces the same compensation outcome."
+      },
+      "expectedResults": [
+        "Order status is 'failed'.",
+        "Wallet balances equal their pre-attempt values.",
+        "A matching reversal entry exists for every reservation."
+      ],
+      "testIds": ["qa-gateway-select", "checkout-finalize-button", "payment-result-failure", "payment-result-error-code"]
+    },
+    {
+      "key": "SPAY-109",
+      "summary": "Idempotency and duplicate payment prevention",
+      "summaryFa": "جلوگیری از پرداخت تکراری",
+      "status": "TODO",
+      "priority": "CRITICAL",
+      "route": "/checkout",
+      "userStory": "As the platform, I want duplicate payment requests with the same idempotency key to be deduplicated so that a user is never charged twice.",
+      "userStoryFa": "به عنوان پلتفرم، می‌خواهم درخواست‌های تکراری پرداخت با همان کلید بی‌قراردادی حذف شوند تا کاربر دو بار شارژ نشود.",
+      "description": "POST /api/orders/:id/pay requires an idempotencyKey. Replays with the same key on the same order return the original PaymentAttempt untouched. Replays with the same key but a conflicting payload return 409 IDEMPOTENCY_CONFLICT. Paid orders reject any new attempt with ORDER_ALREADY_PAID.",
+      "descriptionFa": "POST /api/orders/:id/pay به idempotencyKey نیاز دارد. درخواست تکراری با همان کلید و بار یکسان همان PaymentAttempt اولیه را برمی‌گرداند؛ با بار متفاوت 409 IDEMPOTENCY_CONFLICT. سفارش پرداخت‌شده هر درخواست جدیدی را با ORDER_ALREADY_PAID رد می‌کند.",
+      "preconditions": [
+        "A paid order with idempotencyKey K1."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "the paid order and the same allocations",
+          "when": "POST /api/orders/:id/pay is called again with K1",
+          "then": "the response reuses the original PaymentAttempt and wallet balances are unchanged"
+        },
+        {
+          "given": "the paid order",
+          "when": "POST /api/orders/:id/pay is called again with a new idempotency key",
+          "then": "the API responds with ORDER_ALREADY_PAID"
+        },
+        {
+          "given": "the same K1",
+          "when": "the payload differs from the original",
+          "then": "the API responds with IDEMPOTENCY_CONFLICT"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Replay with the same key — no additional debit.",
+        "negative": "Attempting a new payment on a paid order is rejected."
+      },
+      "expectedResults": [
+        "Only one committed PaymentAttempt per order.",
+        "Idempotent replays are safe and deterministic."
+      ],
+      "testIds": ["qa-replay-last-payment", "payment-result-success"]
+    },
+    {
+      "key": "SPAY-110",
+      "summary": "Full refund restoring original allocations",
+      "summaryFa": "بازگشت کامل وجه",
+      "status": "TODO",
+      "priority": "HIGH",
+      "route": "/orders/:id",
+      "userStory": "As a shopper, I want to fully refund a paid order so that my wallet segments are credited back and the card refund is recorded.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم یک سفارش پرداخت‌شده را به طور کامل بازگردانم تا بخش‌های کیف پول دوباره شارژ شده و بازگشت کارت ثبت شود.",
+      "description": "POST /api/orders/:id/refund with a fresh idempotencyKey reverses every wallet allocation back to its original segment and records a card refund entry. Order status becomes 'refunded'. Repeating the refund is a no-op idempotent response.",
+      "descriptionFa": "POST /api/orders/:id/refund با کلید بی‌قراردادی جدید تمام تخصیص‌های کیف پول را به بخش اصلی بازمی‌گرداند و بازپرداخت کارت را ثبت می‌کند. وضعیت سفارش 'refunded' می‌شود. تکرار یک no-op idempotent است.",
+      "preconditions": [
+        "A paid order ORD-X with the 40/20/10/30 breakdown."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "the paid order",
+          "when": "the user clicks the Refund button on /orders/:id",
+          "then": "the wallet returns to the pre-payment balances and the order status becomes 'refunded'"
+        },
+        {
+          "given": "a refunded order",
+          "when": "the user clicks Refund again",
+          "then": "the API returns a NOT_REFUNDABLE error and the UI disables the Refund button"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Refund a €100 order and see balances restored to the seeded defaults.",
+        "negative": "Refund attempts on a non-paid order are rejected with NOT_REFUNDABLE."
+      },
+      "expectedResults": [
+        "Wallet segments return to pre-payment balances.",
+        "Ledger contains a credit entry per source and a card refund entry."
+      ],
+      "testIds": ["order-detail-refund-button", "order-detail-status", "order-detail-refund-history"]
+    },
+    {
+      "key": "SPAY-111",
+      "summary": "Transaction ledger",
+      "summaryFa": "دفتر کل تراکنش‌ها",
+      "status": "TODO",
+      "priority": "HIGH",
+      "route": "/ledger",
+      "userStory": "As an operator, I want to inspect the full ledger with filters so that I can trace balance changes to events.",
+      "userStoryFa": "به عنوان اپراتور، می‌خواهم دفتر کل را با فیلتر مشاهده کنم تا بتوانم تغییرات موجودی را به رویدادها ردگیری کنم.",
+      "description": "GET /api/ledger returns the full event stream sorted by createdAt desc. The UI exposes 'All / Payments / Refunds' filters and shows: timestamp, order id, source, amount with +/− sign and state badge. Each row lists its reason code when present.",
+      "descriptionFa": "GET /api/ledger جریان کامل رویدادها را به ترتیب نزولی زمان برمی‌گرداند. UI فیلترهای «همه / پرداخت‌ها / بازگشت‌ها» را ارائه می‌دهد و هر ردیف شامل زمان، شناسه سفارش، منبع، مبلغ با علامت +/− و وضعیت است.",
+      "preconditions": [
+        "At least one payment and one refund exist."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "a successful pay and a successful refund",
+          "when": "the user opens /ledger",
+          "then": "payment entries appear with negative amounts and refund entries with positive amounts"
+        },
+        {
+          "given": "the ledger screen",
+          "when": "the user clicks the Refunds filter",
+          "then": "only refund entries remain visible"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Filter between All/Payments/Refunds and see row counts update accordingly.",
+        "negative": "After /dev/reset the ledger is empty."
+      },
+      "expectedResults": [
+        "Ledger entry count equals payment debits + refund credits + their reversals if any.",
+        "No balance change exists without a corresponding ledger entry."
+      ],
+      "testIds": ["ledger-filter-all", "ledger-filter-payments", "ledger-filter-refunds", "ledger-row"]
+    },
+    {
+      "key": "SPAY-112",
+      "summary": "PWA installation and offline handling",
+      "summaryFa": "نصب PWA و حالت آفلاین",
+      "status": "TODO",
+      "priority": "MEDIUM",
+      "route": "/",
+      "userStory": "As a shopper, I want the app to install and show a clear offline state so that I do not attempt payments without connectivity.",
+      "userStoryFa": "به عنوان یک خریدار، می‌خواهم اپلیکیشن قابل نصب باشد و در حالت آفلاین به وضوح نمایش داده شود تا پرداخت بدون اتصال انجام نشود.",
+      "description": "The app ships a web manifest with 192 and 512 icons and a service worker that caches the app shell. When offline, a banner with data-testid='offline-banner' appears and the Finalize Payment button is disabled with a tooltip explaining why.",
+      "descriptionFa": "اپلیکیشن دارای manifest با آیکون‌های ۱۹۲ و ۵۱۲ و سرویس ورکر برای کش کردن پوسته است. در حالت آفلاین بنر با data-testid='offline-banner' ظاهر می‌شود و دکمه پرداخت نهایی غیرفعال می‌گردد.",
+      "preconditions": [
+        "The web app is served and the service worker is registered."
+      ],
+      "acceptanceCriteria": [
+        {
+          "given": "the app is loaded",
+          "when": "network goes offline",
+          "then": "the offline-banner element becomes visible and the Finalize Payment button is disabled"
+        },
+        {
+          "given": "the app is loaded",
+          "when": "the manifest is fetched",
+          "then": "it includes name='SegmentPay', 192 and 512 icons, and display='standalone'"
+        }
+      ],
+      "scenarios": {
+        "happyPath": "Install the PWA, go offline, see the banner, go online, see the banner disappear.",
+        "negative": "Offline payment attempts must not be submitted to the API."
+      },
+      "expectedResults": [
+        "Manifest and service worker registered.",
+        "Offline banner reacts to navigator.onLine and online/offline events."
+      ],
+      "testIds": ["offline-banner", "checkout-finalize-button"]
+    }
+  ]
+}

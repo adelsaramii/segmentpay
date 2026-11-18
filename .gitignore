@@ -19,3 +19,4 @@ test-results
 tests/e2e/.auth
 qa-evidence/screenshots
 !qa-evidence/screenshots/.gitkeep
+apps/web/dev-dist

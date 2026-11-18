@@ -1,0 +1,31 @@
+{
+  "name": "segmentpay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SegmentPay — Multi-Segment Wallet with Multi-Payment per Order (PWA demo)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm --workspace @segmentpay/api run dev\" \"npm --workspace @segmentpay/web run dev\"",
+    "dev:api": "npm --workspace @segmentpay/api run dev",
+    "dev:web": "npm --workspace @segmentpay/web run dev",
+    "build": "npm --workspace @segmentpay/shared run build && npm --workspace @segmentpay/api run build && npm --workspace @segmentpay/web run build",
+    "typecheck": "npm --workspace @segmentpay/shared run build && npm --workspace @segmentpay/api run typecheck && npm --workspace @segmentpay/web run typecheck",
+    "test": "npm --workspace @segmentpay/shared run build && npm --workspace @segmentpay/api run test",
+    "test:e2e": "playwright test --config=tests/playwright.config.ts",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "qa:boot": "concurrently -k -s first -n api,web -c cyan,magenta \"npm --workspace @segmentpay/api run start\" \"npm --workspace @segmentpay/web run preview -- --port 5173 --host 127.0.0.1\"",
+    "clean": "rimraf apps/*/dist packages/*/dist"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "concurrently": "^9.1.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

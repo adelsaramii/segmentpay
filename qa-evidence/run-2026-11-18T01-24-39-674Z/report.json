@@ -1,0 +1,136 @@
+{
+  "runId": "2026-11-18T01-24-39-674Z",
+  "verdicts": [
+    {
+      "ticket": "SPAY-101",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Total €220.00 and four segments visible"
+      ],
+      "files": [
+        "SPAY-101-step-1-wallet.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-102",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Gift/Cashback/Corporate unchanged after cash-only pay"
+      ],
+      "files": [
+        "SPAY-102-step-1-wallet-after-cash-pay.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-103",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Gift and Corporate inputs disabled for electronics"
+      ],
+      "files": [
+        "SPAY-103-step-1-ineligible-gift-corporate.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-104",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Shop filter narrows list; cart totals = items + €2 shipping"
+      ],
+      "files": [
+        "SPAY-104-step-1-shop-all.png",
+        "SPAY-104-step-2-shop-grocery-filter.png",
+        "SPAY-104-step-3-cart-with-shipping.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-105",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Cart checkout button navigates to /checkout/:orderId"
+      ],
+      "files": [
+        "SPAY-105-step-1-checkout-landed.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-106",
+      "verdict": "VERIFIED",
+      "steps": [
+        "finalize disabled when empty"
+      ],
+      "files": [
+        "SPAY-106-step-1-checkout-empty-allocations.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-107",
+      "verdict": "VERIFIED",
+      "steps": [
+        "SPAY-106: finalize disabled on empty allocations",
+        "SPAY-107: 40/20/10/30 pay succeeds on €100 grocery order"
+      ],
+      "files": [
+        "SPAY-106-step-1-checkout-empty-allocations.png",
+        "SPAY-107-step-2-allocations-40-20-10-30.png",
+        "SPAY-107-step-3-success-screen.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-108",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Card declined failure screen shown; wallet restored"
+      ],
+      "files": [
+        "SPAY-108-step-1-payment-failure.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-109",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Same-key replay = no-op; different key = ORDER_ALREADY_PAID"
+      ],
+      "files": [
+        "SPAY-109-step-1-order-paid-after-replay.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-110",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Refund button restores wallet; status flips to refunded"
+      ],
+      "files": [
+        "SPAY-110-step-1-order-detail-paid.png",
+        "SPAY-110-step-2-order-detail-refunded.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-111",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Ledger displays entries and filters work"
+      ],
+      "files": [
+        "SPAY-111-step-1-ledger-all.png",
+        "SPAY-111-step-2-ledger-payments.png",
+        "SPAY-111-step-3-ledger-refunds.png"
+      ]
+    },
+    {
+      "ticket": "SPAY-112",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Manifest has 192+512 icons; offline banner toggles with network"
+      ],
+      "files": [
+        "SPAY-112-step-1-online-wallet.png",
+        "SPAY-112-step-2-offline-banner.png"
+      ]
+    }
+  ],
+  "verified": 12,
+  "failed": 0
+}
