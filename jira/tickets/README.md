@@ -16,3 +16,4 @@ Order:
 - [SPAY-110](./SPAY-110.md) · Full refund restoring original allocations
 - [SPAY-111](./SPAY-111.md) · Transaction ledger
 - [SPAY-112](./SPAY-112.md) · PWA installation and offline handling
+- [SPAY-113](./SPAY-113.md) · Smart split — one-tap allocation across eligible sources
