@@ -26,6 +26,20 @@ _FA:_ پرداخت امروز از کاربر می‌خواهد در هر یک �
 
 ## Design
 
+Mockups rendered on the real `/checkout/:orderId` surface at 430×900 (iPhone 14 Pro width) using the production component library. Source PNGs live in `designs/SPAY-113/`.
+
+### Light mode
+
+| 1. Before (today) | 2. Smart Split — idle | 3. Smart Split — complete |
+| :---: | :---: | :---: |
+| ![before-light](./designs/SPAY-113/01-before-light.png) | ![idle-light](./designs/SPAY-113/02-idle-light.png) | ![complete-light](./designs/SPAY-113/03-complete-light.png) |
+
+### Dark mode
+
+| 4. Before (today) | 5. Smart Split — idle | 6. Smart Split — complete |
+| :---: | :---: | :---: |
+| ![before-dark](./designs/SPAY-113/04-before-dark.png) | ![idle-dark](./designs/SPAY-113/05-idle-dark.png) | ![complete-dark](./designs/SPAY-113/06-complete-dark.png) |
+
 ### Placement
 
 A new button rendered **above the segment allocation rows**, below the stepper breadcrumb, inside a dedicated row card so it reads as a utility — not a primary CTA.
@@ -39,13 +53,13 @@ A new button rendered **above the segment allocation rows**, below the stepper b
           سبد  ›  پرداخت  ›  تأیید
 
 ┌─ NEW: Smart Split row ────────────────────┐   ← added by this ticket
-│  ⚡ تقسیم هوشمند          [پر کردن خودکار]│
-│  بر اساس موجودی و قوانین واجد شرایط       │
+│  ✨ تقسیم هوشمند          [🪄 پر کردن خودکار]│
+│     بر اساس موجودی و قوانین واجد شرایط    │
 └───────────────────────────────────────────┘
 
 ┌─ Allocation rows (unchanged) ─────────────┐
-│  💵 موجودی نقدی    حداکثر €50   [− 0 +]   │
-│  🎁 اعتبار هدیه    حداکثر €20   [− 0 +]   │
+│  💵 موجودی نقدی    حداکثر €120  [− 0 +]   │
+│  🎁 اعتبار هدیه    حداکثر €25   [− 0 +]   │
 │  ...                                      │
 └───────────────────────────────────────────┘
 ```
