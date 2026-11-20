@@ -28,7 +28,7 @@ _FA:_ پرداخت امروز از کاربر می‌خواهد در هر یک �
 
 ## Design
 
-Mockups rendered on the real `/checkout/:orderId` surface at 430×900 (iPhone 14 Pro width) using the production component library — not mocked in Figma. Source PNGs live in `designs/SPAY-113/`. Each scenario is shown in both light and dark themes.
+Mockups rendered on the real `/checkout/:orderId` surface at 430×900 (iPhone 14 Pro width) using the production component library. Source PNGs live in `designs/SPAY-113/` and all 16 are also mirrored in Figma: **[open Figma file ↗](https://www.figma.com/design/jEKubBMkzFBWjvmxtNmfS7)**. Each scenario is shown in both light and dark themes.
 
 ### Scenario 1 — Happy path (€100 grocery, full wallet)
 
