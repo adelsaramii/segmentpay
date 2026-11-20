@@ -1,6 +1,6 @@
 ---
 name: web-driver
-description: "Drive the SegmentPay web app from short scripts — open, read, tap, type, screenshot, inspect network/console. Playwright under the hood; phone-harness-shaped helpers on top so one-off agent tasks don't need full spec files."
+description: "Drive the SegmentPay web app from short scripts or over a file-based IPC loop. Semantic state matches the Android driver in qa-agent-mvp, so an orchestrator sees web and mobile the same way. Playwright under the hood."
 ---
 
 # web-driver
@@ -8,7 +8,7 @@ description: "Drive the SegmentPay web app from short scripts — open, read, ta
 Thin Playwright wrapper that exposes a uniform set of verbs so an agent (or a
 script) can drive the real SegmentPay web app without writing a full `@playwright/test` spec.
 
-Lives at `scripts/web-driver.mjs`. One file, two modes.
+Lives at `scripts/web-driver.mjs`. One file, three modes.
 
 ## Setup
 
@@ -29,7 +29,7 @@ Env overrides:
 | `WEB_URL` | `http://localhost:5173` | base for `open('/path')` |
 | `API_URL` | `http://localhost:4000` | base for `api('POST','/api/...')` |
 | `HEADLESS` | `1` | set to `0` to watch the browser |
-| `VIEWPORT` | `430x900` | `WxH` in CSS pixels |
+| `VIEWPORT` | `mobile` | preset (`mobile` \| `tablet` \| `desktop`) or `WxH` in CSS pixels |
 
 ## Usage — heredoc (one-shot)
 
@@ -67,6 +67,19 @@ The browser starts lazily on the first helper call and stays alive until
 `close()` or the process exits. Use the module mode for anything that visits >1
 page: it reuses the same browser.
 
+## Usage — IPC server (long-running, qa-agent-mvp compatible)
+
+Same protocol the Android driver in qa-agent-mvp uses: command files in, response files out. Lets an orchestrator treat web and mobile the same way.
+
+```bash
+node scripts/web-driver.mjs --serve=/tmp/qa-driver &
+# driver writes `ready` with its pid; waits for cmd-0.json, cmd-1.json, …
+```
+
+Each command file is JSON: `{ "op": "<name>", ...args }`. The driver writes `resp-N.json` with `{ ok, delta, ...result }` — the current `state` is attached whenever `delta.screen_changed` is true. Send `touch <ipcDir>/stop` to shut down.
+
+Supported ops: `open`, `tap_text`, `tap_testid`, `fill`, `type_text`, `press`, `scroll`, `wait_for_text`, `wait_for_text_gone`, `screenshot`, `theme`, `viewport`, `modal_sweep`, `state`, `screen`, `find_text`, `api`, `reset`, `network`, `clear_network`, `console_messages`, `clear_console`, `url`, `batch`.
+
 ## Helpers
 
 Navigation & timing:
@@ -76,12 +89,15 @@ Navigation & timing:
 - `wait_for_text(query, { timeout, exact })` — poll until visible; returns `true`/`false`.
 - `wait_for_text_gone(query, { timeout })` — poll until hidden.
 - `theme(mode, { waitFor })` — set `localStorage['segmentpay-theme']` and reload. Optional `waitFor` pins a readiness check.
+- `viewport(preset)` — resize to `'mobile'` (430×900), `'tablet'` (820×1180), `'desktop'` (1440×900), or a custom `{ width, height }`. Reuses the browser.
 
 Reading:
 
-- `screen()` — visible text nodes `[{ text, role, testid?, x, y, w, h }]`. Leaf-ish, de-duplicated.
-- `find_text(query, { exact })` — same shape, filtered.
-- `screenshot(path, { fullPage })` — full-page PNG by default. Path relative to repo root.
+- `state()` — the "semantic state" the agent sees instead of the pixels. Mirrors the Android driver's shape: `{ url, route, title, viewport, top_bar, visible_interactives, visible_text, modal, focused, scroll, selected_tab, screen_fingerprint }`. `visible_interactives` entries carry `{ type, id, label, text, value, bounds, disabled, focused, in_dialog }`.
+- `diff(prev, curr)` — pure function. Returns `{ screen_changed, route_changed, modal_opened, modal_closed, added, removed }` using the fingerprint for cheap "same screen?" checks.
+- `screen()` — flat list of visible leaf-ish text nodes `[{ text, role, testid?, x, y, w, h }]`. Useful for ad-hoc queries; `state()` is the canonical read.
+- `find_text(query, { exact })` — same shape as `screen()`, filtered.
+- `screenshot(path, { fullPage })` — **evidence only**. Full-page PNG by default. The agent never reads pixels back; this is for the QA report.
 
 Acting:
 
@@ -91,6 +107,7 @@ Acting:
 - `type_text(s, { delay })` — type into the focused element.
 - `press(key)` — keyboard chord, e.g. `'Enter'`, `'Control+a'`.
 - `scroll(direction, amount)` — `'down' | 'up' | 'left' | 'right'`, `amount` is fraction of viewport.
+- `modal_sweep()` — close any open `[role=dialog]` / `[role=alertdialog]` / `<dialog open>` by clicking its Close button; falls back to `Escape`. Returns count dismissed.
 
 Inspection — the "why did it fail" layer:
 
@@ -108,22 +125,25 @@ Escape hatches:
 
 ## Working method
 
-1. **Name what should change before you act.** A testid that appears, a total
-   that updates, a route change, a specific POST that fires. Without that you
-   can't tell success from a silent no-op.
-2. **Act, then verify cheaply.** `wait_for_text(...)` then one `screen()` or
-   `find_text(...)`. For API-driven assertions, `clear_network()` → act →
-   `network({ url: '/api/...' })`. Don't `await sleep(n)`.
-3. **Batch proven sub-tasks.** A whole scenario in one heredoc costs one
+1. **Read `state()` before and after**, not screenshots. Screenshots are
+   evidence for the QA report — the agent "sees" the page through the
+   semantic state object, never through pixels.
+2. **Name what should change before you act.** A testid that appears, a route
+   change, a `delta.modal_opened`, a specific POST that fires. Without that
+   you can't tell success from a silent no-op.
+3. **Act, then verify cheaply.** Check `delta.screen_changed` first — if the
+   fingerprint matches, no state parse needed. For API-driven assertions,
+   `clear_network()` → act → `network({ url: '/api/...' })`. Don't
+   `await sleep(n)`.
+4. **Batch proven sub-tasks.** A whole scenario in one heredoc costs one
    browser launch (~1s); a call per turn costs that every time.
-4. **When a check fails, isolate.** Re-run the single action, `screen()` what
-   you see, check `console_messages({ type: 'error' })` and
-   `network({ failedOnly: true })` for the real cause, form one guess, test it.
-   Don't re-run the batch.
-5. **Reach for `api(...)` when the UI is incidental.** Draining a wallet,
+5. **When a check fails, isolate.** Read `state()`, check
+   `console_messages({ type: 'error' })` and `network({ failedOnly: true })`
+   for the real cause, form one guess, test it. Don't re-run the batch.
+6. **Reach for `api(...)` when the UI is incidental.** Draining a wallet,
    creating orders, flipping gateway mode — faster and more reliable than
    clicking through screens.
-6. **Reach for `inject(fn)` for presentation-only DOM changes** — e.g.
+7. **Reach for `inject(fn)` for presentation-only DOM changes** — e.g.
    rendering a design mockup of an un-built component on a real screen (see
    `render-mockups-spay-113.mjs`). Don't use it to bypass real behavior under
    test.
