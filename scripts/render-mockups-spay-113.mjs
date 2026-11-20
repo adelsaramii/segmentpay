@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Renders all SPAY-113 Smart Split design mockups by driving the real web app
-// through scripts/web-harness.mjs. The Smart Split component is not built yet;
+// through scripts/web-driver.mjs. The Smart Split component is not built yet;
 // `inject()` paints its proposed card into the real DOM for the screenshot.
 //
 // Prereq: dev servers running (`npm run dev` in another terminal).
@@ -8,7 +8,7 @@
 
 import {
   open, api, reset, theme, fill, inject, screenshot, wait_for_text, close,
-} from './web-harness.mjs';
+} from './web-driver.mjs';
 
 const OUT = 'jira/tickets/designs/SPAY-113';
 

@@ -1,14 +1,14 @@
 ---
-name: web-harness
-description: "Drive the SegmentPay web app from short scripts — open, read, tap, type, screenshot. Playwright under the hood; phone-harness-shaped helpers on top so one-off agent tasks don't need full spec files."
+name: web-driver
+description: "Drive the SegmentPay web app from short scripts — open, read, tap, type, screenshot, inspect network/console. Playwright under the hood; phone-harness-shaped helpers on top so one-off agent tasks don't need full spec files."
 ---
 
-# web-harness
+# web-driver
 
 Thin Playwright wrapper that exposes a uniform set of verbs so an agent (or a
 script) can drive the real SegmentPay web app without writing a full `@playwright/test` spec.
 
-Lives at `scripts/web-harness.mjs`. One file, two modes.
+Lives at `scripts/web-driver.mjs`. One file, two modes.
 
 ## Setup
 
@@ -18,7 +18,7 @@ Prereq: the SegmentPay dev servers must be running.
 npm run dev          # starts api on :4000 and web on :5173
 ```
 
-If you're calling the harness from an agent, do not start `npm run dev` inside the
+If you're calling the driver from an agent, do not start `npm run dev` inside the
 same heredoc — it blocks. Ask the user to run it in another terminal (or check
 `curl http://localhost:5173` returns 200 before scripting).
 
@@ -34,7 +34,7 @@ Env overrides:
 ## Usage — heredoc (one-shot)
 
 ```bash
-node scripts/web-harness.mjs <<'JS'
+node scripts/web-driver.mjs <<'JS'
 // task: screenshot the checkout page for ORD-10001 in both themes
 // step: reset state, create order, open checkout, shoot light + dark
 await reset();
@@ -54,7 +54,7 @@ pre-imported into the body; nothing to `require`.
 ## Usage — module (long-running)
 
 ```js
-import { open, screen, tap_testid, screenshot, close } from '../scripts/web-harness.mjs';
+import { open, screen, tap_testid, screenshot, close } from '../scripts/web-driver.mjs';
 
 for (const id of ['ORD-10001', 'ORD-10002', 'ORD-10003']) {
   await open(`/checkout/${id}`);
@@ -92,6 +92,13 @@ Acting:
 - `press(key)` — keyboard chord, e.g. `'Enter'`, `'Control+a'`.
 - `scroll(direction, amount)` — `'down' | 'up' | 'left' | 'right'`, `amount` is fraction of viewport.
 
+Inspection — the "why did it fail" layer:
+
+- `network({ url, method, failedOnly })` — observed requests since launch or last `clear_network()`. Each entry: `{ method, url, status, ok, ms, resourceType, failure? }`. `url` is a substring match.
+- `clear_network()` — reset the request buffer. Call before an action to capture "requests from this point".
+- `console_messages({ type })` — console entries since launch or last `clear_console()`. Each entry: `{ type, text, location? }`. `type` filter accepts `'error'`, `'warning'`, `'log'`, `'pageerror'`, …
+- `clear_console()` — reset the console buffer.
+
 Escape hatches:
 
 - `api(method, path, body)` — fetch wrapper to `API_URL`. Returns parsed JSON.
@@ -102,14 +109,17 @@ Escape hatches:
 ## Working method
 
 1. **Name what should change before you act.** A testid that appears, a total
-   that updates, a route change. Without that you can't tell success from a
-   silent no-op.
+   that updates, a route change, a specific POST that fires. Without that you
+   can't tell success from a silent no-op.
 2. **Act, then verify cheaply.** `wait_for_text(...)` then one `screen()` or
-   `find_text(...)`. Don't `await sleep(n)`.
+   `find_text(...)`. For API-driven assertions, `clear_network()` → act →
+   `network({ url: '/api/...' })`. Don't `await sleep(n)`.
 3. **Batch proven sub-tasks.** A whole scenario in one heredoc costs one
    browser launch (~1s); a call per turn costs that every time.
 4. **When a check fails, isolate.** Re-run the single action, `screen()` what
-   you see, form one guess, test it. Don't re-run the batch.
+   you see, check `console_messages({ type: 'error' })` and
+   `network({ failedOnly: true })` for the real cause, form one guess, test it.
+   Don't re-run the batch.
 5. **Reach for `api(...)` when the UI is incidental.** Draining a wallet,
    creating orders, flipping gateway mode — faster and more reliable than
    clicking through screens.
@@ -118,10 +128,10 @@ Escape hatches:
    `render-mockups-spay-113.mjs`). Don't use it to bypass real behavior under
    test.
 
-## When not to use web-harness
+## When not to use web-driver
 
 - **Running the e2e suite.** Use `npm run test:e2e` (Playwright Test under
-  `tests/e2e/`). Those specs produce assertions and reports; the harness
+  `tests/e2e/`). Those specs produce assertions and reports; the driver
   produces observations and screenshots.
 - **Anything mobile-only or OCR-only.** Reach for phone-harness instead.
 - **Tasks that only need the API.** Call the API directly. `curl` or `fetch`
@@ -130,4 +140,4 @@ Escape hatches:
 ## Example scripts in this repo
 
 - `scripts/render-mockups-spay-113.mjs` — regenerates all 16 Smart Split
-  design PNGs using harness helpers. Run: `npm run mockups:spay-113`.
+  design PNGs using driver helpers. Run: `npm run mockups:spay-113`.

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// web-harness — phone-harness-ergonomics for the SegmentPay web app.
+// web-driver — phone-harness-ergonomics for the SegmentPay web app.
 // A thin, uniform set of verbs on top of Playwright so an agent can drive the
 // real app with short scripts instead of writing full Playwright specs.
 //
 // Two modes:
 //
 //   1. Heredoc CLI (one-shot):
-//        node scripts/web-harness.mjs <<'JS'
+//        node scripts/web-driver.mjs <<'JS'
 //        // task: open the checkout and screenshot it
 //        // step: open ORD-10001, shoot
 //        await open('/checkout/ORD-10001');
@@ -15,7 +15,7 @@
 //        JS
 //
 //   2. Importable module (long-running scripts):
-//        import { open, screen, screenshot, close } from './scripts/web-harness.mjs';
+//        import { open, screen, screenshot, close } from './scripts/web-driver.mjs';
 //        await open('/checkout/x');
 //        await close();
 //
@@ -45,12 +45,55 @@ const [vw, vh] = (process.env.VIEWPORT ?? '430x900').split('x').map((n) => parse
 let _browser;
 let _context;
 let _page;
+let _requests = []; // ring buffer of observed requests
+let _console = [];  // ring buffer of console entries
+const _starts = new WeakMap(); // request → performance.now() for timing
 
 async function ensure() {
   if (_page) return _page;
   _browser = await chromium.launch({ headless: HEADLESS });
   _context = await _browser.newContext({ viewport: { width: vw, height: vh }, locale: 'fa-IR' });
   _page = await _context.newPage();
+  _page.on('request', (req) => _starts.set(req, performance.now()));
+  _page.on('requestfinished', async (req) => {
+    const res = await req.response().catch(() => null);
+    const t0 = _starts.get(req) ?? performance.now();
+    _requests.push({
+      method: req.method(),
+      url: req.url(),
+      status: res ? res.status() : 0,
+      ok: res ? res.ok() : false,
+      ms: Math.round(performance.now() - t0),
+      resourceType: req.resourceType(),
+    });
+    if (_requests.length > 500) _requests.shift();
+  });
+  _page.on('requestfailed', (req) => {
+    const t0 = _starts.get(req) ?? performance.now();
+    _requests.push({
+      method: req.method(),
+      url: req.url(),
+      status: 0,
+      ok: false,
+      ms: Math.round(performance.now() - t0),
+      resourceType: req.resourceType(),
+      failure: req.failure()?.errorText,
+    });
+    if (_requests.length > 500) _requests.shift();
+  });
+  _page.on('console', (msg) => {
+    const loc = msg.location();
+    _console.push({
+      type: msg.type(),
+      text: msg.text(),
+      location: loc.url ? `${loc.url}:${loc.lineNumber ?? 0}` : undefined,
+    });
+    if (_console.length > 500) _console.shift();
+  });
+  _page.on('pageerror', (err) => {
+    _console.push({ type: 'pageerror', text: err.message });
+    if (_console.length > 500) _console.shift();
+  });
   return _page;
 }
 
@@ -221,6 +264,35 @@ export async function inject(fn, ...args) {
   return page.evaluate(fn, ...args);
 }
 
+/** Observed network requests since the browser launched or last `clear_network()`.
+ *  Optional filters: { url, method, failedOnly }. `url` is a substring match. */
+export async function network({ url, method, failedOnly } = {}) {
+  await ensure();
+  return _requests.filter((r) => {
+    if (url && !r.url.includes(url)) return false;
+    if (method && r.method !== method.toUpperCase()) return false;
+    if (failedOnly && r.ok) return false;
+    return true;
+  });
+}
+
+/** Clear the network buffer. Use before an action to capture "requests from this point". */
+export async function clear_network() {
+  _requests = [];
+}
+
+/** Console entries since the browser launched or last `clear_console()`.
+ *  Optional filter: { type } e.g. 'error', 'warning', 'log', 'pageerror'. */
+export async function console_messages({ type } = {}) {
+  await ensure();
+  return type ? _console.filter((m) => m.type === type) : _console.slice();
+}
+
+/** Clear the console buffer. */
+export async function clear_console() {
+  _console = [];
+}
+
 /** Current URL. */
 export async function url() {
   const page = await ensure();
@@ -232,6 +304,8 @@ export async function close() {
   if (_browser) {
     await _browser.close();
     _browser = _context = _page = undefined;
+    _requests = [];
+    _console = [];
   }
 }
 
@@ -243,12 +317,13 @@ async function runCli() {
   for await (const chunk of process.stdin) chunks.push(chunk);
   const body = Buffer.concat(chunks).toString('utf8').trim();
   if (!body) {
-    console.error('web-harness: no script on stdin. Usage: node scripts/web-harness.mjs <<\'JS\' ... JS');
+    console.error('web-driver: no script on stdin. Usage: node scripts/web-driver.mjs <<\'JS\' ... JS');
     process.exit(2);
   }
   const helpers = {
     open, screen, find_text, tap_text, tap_testid, fill, type_text, press, scroll,
-    wait_for_text, wait_for_text_gone, screenshot, api, reset, theme, inject, url, close,
+    wait_for_text, wait_for_text_gone, screenshot, api, reset, theme, inject,
+    network, clear_network, console_messages, clear_console, url, close,
   };
   // Wrap the user body in an async IIFE and inject helpers via destructuring from `h`.
   const fn = new Function('h', `return (async () => {
