@@ -17,6 +17,7 @@
     "test:e2e": "playwright test --config=tests/playwright.config.ts",
     "test:e2e:install": "playwright install --with-deps chromium",
     "qa:boot": "concurrently -k -s first -n api,web -c cyan,magenta \"npm --workspace @segmentpay/api run start\" \"npm --workspace @segmentpay/web run preview -- --port 5173 --host 127.0.0.1\"",
+    "mockups:spay-113": "node scripts/render-mockups-spay-113.mjs",
     "clean": "rimraf apps/*/dist packages/*/dist"
   },
   "devDependencies": {
