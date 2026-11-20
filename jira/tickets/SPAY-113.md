@@ -1,6 +1,6 @@
 # SPAY-113 · Smart split — one-tap allocation across eligible sources
 
-**Status:** TODO · **Priority:** HIGH · **Route:** `/checkout/:orderId`
+**Status:** TODO · **Priority:** HIGH · **Route:** `/checkout/:orderId` · **Designs:** [`designs/SPAY-113/`](https://github.com/adelsaramii/segmentpay/tree/main/jira/tickets/designs/SPAY-113)
 
 ## User story
 
