@@ -28,19 +28,54 @@ _FA:_ پرداخت امروز از کاربر می‌خواهد در هر یک �
 
 ## Design
 
-Mockups rendered on the real `/checkout/:orderId` surface at 430×900 (iPhone 14 Pro width) using the production component library. Source PNGs live in `designs/SPAY-113/`.
+Mockups rendered on the real `/checkout/:orderId` surface at 430×900 (iPhone 14 Pro width) using the production component library — not mocked in Figma. Source PNGs live in `designs/SPAY-113/`. Each scenario is shown in both light and dark themes.
 
-### Light mode
+### Scenario 1 — Happy path (€100 grocery, full wallet)
 
-| 1. Before (today) | 2. Smart Split — idle | 3. Smart Split — complete |
+**Step 1.** Today's checkout: user must type into each wallet input manually.
+**Step 2.** With Smart Split: idle state, button enabled, eligibility resolved.
+**Step 3.** After tap: all five inputs filled, finalize button enables.
+
+|  | 1. Before (today) | 2. Smart Split — idle | 3. Smart Split — complete |
+| :---: | :---: | :---: | :---: |
+| Light | ![before-light](./designs/SPAY-113/01-before-light.png) | ![idle-light](./designs/SPAY-113/02-idle-light.png) | ![complete-light](./designs/SPAY-113/03-complete-light.png) |
+| Dark | ![before-dark](./designs/SPAY-113/04-before-dark.png) | ![idle-dark](./designs/SPAY-113/05-idle-dark.png) | ![complete-dark](./designs/SPAY-113/06-complete-dark.png) |
+
+### Scenario 2 — Partial eligibility (€301 electronics)
+
+Only `cash` and `card` are eligible. `gift` / `cashback` / `corporate` stay locked with their existing lock badges. Smart Split drains cash first (max €70), remainder lands on card (€231).
+
+|  | Electronics — idle | Electronics — after Smart Split |
 | :---: | :---: | :---: |
-| ![before-light](./designs/SPAY-113/01-before-light.png) | ![idle-light](./designs/SPAY-113/02-idle-light.png) | ![complete-light](./designs/SPAY-113/03-complete-light.png) |
+| Light | ![electronics-idle-light](./designs/SPAY-113/11-electronics-idle-light.png) | ![electronics-filled-light](./designs/SPAY-113/13-electronics-filled-light.png) |
+| Dark | ![electronics-idle-dark](./designs/SPAY-113/12-electronics-idle-dark.png) | ![electronics-filled-dark](./designs/SPAY-113/14-electronics-filled-dark.png) |
 
-### Dark mode
+### Scenario 3 — Empty wallet fallback (€3.99 grocery)
 
-| 4. Before (today) | 5. Smart Split — idle | 6. Smart Split — complete |
-| :---: | :---: | :---: |
-| ![before-dark](./designs/SPAY-113/04-before-dark.png) | ![idle-dark](./designs/SPAY-113/05-idle-dark.png) | ![complete-dark](./designs/SPAY-113/06-complete-dark.png) |
+Every non-card segment balance is zero. Smart Split writes the full total to `card` and leaves wallet rows at 0. Validates AC-3.
+
+|  | Empty wallet — after Smart Split |
+| :---: | :---: |
+| Light | ![empty-light](./designs/SPAY-113/15-empty-wallet-filled-light.png) |
+| Dark | ![empty-dark](./designs/SPAY-113/16-empty-wallet-filled-dark.png) |
+
+### Scenario 4 — Loading (quote still resolving)
+
+Before eligibility is known, the button is disabled with a spinner leading icon and the subtitle flips to «در حال بارگذاری اعتبارسنجی...».
+
+|  | Loading state |
+| :---: | :---: |
+| Light | ![loading-light](./designs/SPAY-113/09-loading-light.png) |
+| Dark | ![loading-dark](./designs/SPAY-113/10-loading-dark.png) |
+
+### Scenario 5 — Finalize (closes the loop)
+
+After Smart Split + tap finalize, the standard `/payment-result/:id` success screen is unchanged. Shown here to confirm the Smart Split flow terminates cleanly.
+
+|  | Payment result — success |
+| :---: | :---: |
+| Light | ![success-light](./designs/SPAY-113/07-payment-success-light.png) |
+| Dark | ![success-dark](./designs/SPAY-113/08-payment-success-dark.png) |
 
 ### Placement
 
