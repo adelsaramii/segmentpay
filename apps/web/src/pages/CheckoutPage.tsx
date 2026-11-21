@@ -10,9 +10,11 @@ import { QaControls, saveLastPayPayload, loadLastPayPayload } from '../component
 import { newIdempotencyKey } from '../lib/idempotency.js';
 import { SegmentIcon } from '../components/ui/SegmentIcon.js';
 import { AllocationBar } from '../components/AllocationBar.js';
+import { SmartSplitRow } from '../components/SmartSplitRow.js';
 import { Button } from '../components/ui/Button.js';
 import { Skeleton } from '../components/ui/Skeleton.js';
 import { cn } from '../lib/cn.js';
+import { smartSplit, getMaxForSource as computeMaxForSource } from '../lib/smart-split.js';
 
 function getOnline() { return navigator.onLine; }
 function subOnline(cb: () => void) {
@@ -41,6 +43,7 @@ export function CheckoutPage() {
   });
   const [eligibility, setEligibility] = useState<QuoteEligibility[]>([]);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [isSplitting, setIsSplitting] = useState(false);
 
   const refreshQuote = useCallback(async () => {
     if (!orderId) return;
@@ -86,15 +89,27 @@ export function CheckoutPage() {
     return eligibility.find((e) => e.source === source);
   }
   function getMaxForSource(source: PaymentSourceId): number {
-    if (source === 'card') return totalCents;
-    const elig = getEligibility(source);
-    if (!elig || elig.maxCents === 0) return 0;
-    const segBal = wallet?.segments.find((s) => s.id === source)?.balanceCents ?? 0;
-    return Math.min(elig.maxCents, segBal, totalCents);
+    return computeMaxForSource(source, totalCents, wallet, eligibility);
   }
 
   const handleAllocChange = (source: PaymentSourceId, cents: number) => {
     setAllocations((prev) => ({ ...prev, [source]: cents }));
+  };
+
+  const quoteLoading = eligibility.length === 0;
+
+  const handleSmartSplit = () => {
+    if (isSplitting || quoteLoading || remaining === 0) return;
+    const result = smartSplit(totalCents, wallet, eligibility);
+    setIsSplitting(true);
+    ALL_SOURCES.forEach((source, i) => {
+      window.setTimeout(() => {
+        requestAnimationFrame(() => {
+          handleAllocChange(source, result[source]);
+          if (source === ALL_SOURCES[ALL_SOURCES.length - 1]) setIsSplitting(false);
+        });
+      }, i * 60);
+    });
   };
 
   const handleFinalize = async () => {
@@ -175,6 +190,13 @@ export function CheckoutPage() {
         <span className="text-soft">›</span>
         <span>تأیید</span>
       </div>
+
+      <SmartSplitRow
+        complete={remaining === 0}
+        loading={quoteLoading}
+        disabled={isSplitting}
+        onSmartSplit={handleSmartSplit}
+      />
 
       {quoteError && (
         <div className="mx-4 mb-2 text-xs text-danger inline-flex items-center gap-1.5">

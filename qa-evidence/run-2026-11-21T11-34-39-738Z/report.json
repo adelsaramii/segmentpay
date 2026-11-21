@@ -1,5 +1,5 @@
 {
-  "runId": "2026-11-18T08-12-08-497Z",
+  "runId": "2026-11-21T11-34-39-738Z",
   "verdicts": [
     {
       "ticket": "SPAY-101",
@@ -129,8 +129,18 @@
         "SPAY-112-step-1-online-wallet.png",
         "SPAY-112-step-2-offline-banner.png"
       ]
+    },
+    {
+      "ticket": "SPAY-113",
+      "verdict": "VERIFIED",
+      "steps": [
+        "Smart Split fills allocations to the order total and enables finalize"
+      ],
+      "files": [
+        "SPAY-113-step-1-smart-split-filled.png"
+      ]
     }
   ],
-  "verified": 12,
+  "verified": 13,
   "failed": 0
 }

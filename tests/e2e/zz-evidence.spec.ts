@@ -248,3 +248,16 @@ test('SPAY-112: PWA manifest + offline evidence', async ({ request, page, contex
   steps.push('Manifest has 192+512 icons; offline banner toggles with network');
   verdicts.push({ ticket: 'SPAY-112', verdict: 'VERIFIED', steps, files });
 });
+
+test('SPAY-113: smart split evidence', async ({ request, page }) => {
+  const files: string[] = [];
+  const steps: string[] = [];
+  const o = await freshOrder(request, [{ productId: 'grocery-banana', quantity: 12 }]);
+  await page.goto(`/checkout/${o.id}`);
+  await expect(page.getByTestId('checkout-smart-split-button')).toBeEnabled({ timeout: 5000 });
+  await page.getByTestId('checkout-smart-split-button').click();
+  await expect(page.getByTestId('checkout-finalize-button')).toBeEnabled({ timeout: 2000 });
+  files.push(await shot(page, 'SPAY-113', 1, 'smart-split-filled'));
+  steps.push('Smart Split fills allocations to the order total and enables finalize');
+  verdicts.push({ ticket: 'SPAY-113', verdict: 'VERIFIED', steps, files });
+});
