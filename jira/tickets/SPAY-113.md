@@ -1,6 +1,6 @@
 # SPAY-113 · Smart split — one-tap allocation across eligible sources
 
-**Status:** TODO · **Priority:** HIGH · **Route:** `/checkout/:orderId`
+**Status:** DONE · **Priority:** HIGH · **Route:** `/checkout/:orderId`
 
 **Designs:** [Figma file](https://www.figma.com/design/jEKubBMkzFBWjvmxtNmfS7) · [GitHub folder](https://github.com/adelsaramii/segmentpay/tree/main/jira/tickets/designs/SPAY-113)
 
@@ -192,3 +192,14 @@ No new tokens. All classes already have dark variants.
 - Add `smartSplit(totalCents, wallet, eligibility)` as a pure function in `apps/web/src/lib/smart-split.ts` with a Vitest unit test covering the three branches (full-wallet, partial-eligibility, empty-wallet). The React component just calls it and feeds the result into `setAllocations`.
 - Dev agent must not introduce `window.alert`, `console.log`, or any mutation of the existing allocation state outside `setAllocations`.
 - QA agent writes `tests/e2e/smart-split.spec.ts` covering AC-1, AC-2, AC-3; regenerates evidence via `zz-evidence.spec.ts` with a new step `SPAY-113-step-1-smart-split-filled.png`.
+
+## QA verification
+
+Verified with `qa-agent`'s `design-critic-agent`, comparing live screenshots against the **real Figma file linked above** (fetched live via the Figma API, not the local mockup copies).
+
+- **Unit:** 5/5 passed (`smart-split.test.ts`).
+- **Acceptance:** 5/5 passed, covering AC-1 through AC-5 (`tests/e2e/smart-split.spec.ts`).
+- **Regression:** 39/39 passed, zero regressions (`zz-evidence.spec.ts` + full e2e suite).
+- **Design audit, idle state:** 93.5% match. One deviation found (CTA button fill: Figma shows white + hairline border, app uses the existing flat-gray `secondary` button style) - **kept as-is**, since the ticket's own spec calls for `intent="secondary"` and matching Figma here would break consistency with every other secondary button in the app.
+- **Design audit, complete state:** 88.0% match. Two deviations found and **fixed**: the disabled button crowded the "all allocated" pill and wrapped its label (now visually collapses to zero width/opacity while staying in the DOM + disabled for AC-4); the checkmark icon was a plain `Check` instead of the ringed `CheckCircle2` from the Figma mock.
+- Re-verified (unit + AC + regression) after the fix: all green.

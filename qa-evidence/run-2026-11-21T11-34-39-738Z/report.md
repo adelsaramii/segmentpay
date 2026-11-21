@@ -1,6 +1,6 @@
-# SegmentPay QA Evidence — run-2026-11-18T08-12-08-497Z
+# SegmentPay QA Evidence — run-2026-11-21T11-34-39-738Z
 
-- Verified: 12
+- Verified: 13
 - Failed: 0
 
 | Ticket | Verdict | Screenshots |
@@ -17,6 +17,7 @@
 | SPAY-110 | VERIFIED | `SPAY-110-step-1-order-detail-paid.png`<br>`SPAY-110-step-2-order-detail-refunded.png` |
 | SPAY-111 | VERIFIED | `SPAY-111-step-1-ledger-all.png`<br>`SPAY-111-step-2-ledger-payments.png`<br>`SPAY-111-step-3-ledger-refunds.png` |
 | SPAY-112 | VERIFIED | `SPAY-112-step-1-online-wallet.png`<br>`SPAY-112-step-2-offline-banner.png` |
+| SPAY-113 | VERIFIED | `SPAY-113-step-1-smart-split-filled.png` |
 
 ## Steps
 
@@ -68,3 +69,7 @@
 ### SPAY-112 — VERIFIED
 
 - Manifest has 192+512 icons; offline banner toggles with network
+
+### SPAY-113 — VERIFIED
+
+- Smart Split fills allocations to the order total and enables finalize
